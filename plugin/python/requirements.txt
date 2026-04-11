@@ -1,0 +1,3 @@
+# ForgeCast â€” Python Dependencies
+# Uses only Python standard library â€” no pip install needed!
+# http.server, json, hashlib, threading, time are all built-in
