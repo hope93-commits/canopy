@@ -1,0 +1,1163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>ForgeCast — The Creator Economy, Rebuilt</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=DM+Mono:wght@400;500&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<style>
+:root {
+  --sand:      #f5f0e8;
+  --sand2:     #ede7d9;
+  --sand3:     #e2dace;
+  --parchment: #faf7f2;
+  --ink:       #1c1814;
+  --ink2:      #3a3228;
+  --ink3:      #6b5e50;
+  --muted:     #9e8f7e;
+  --gold:      #b8860b;
+  --gold2:     #d4a017;
+  --gold-dim:  #b8860b18;
+  --red:       #8b1a1a;
+  --red-dim:   #8b1a1a12;
+  --green:     #1a5c3a;
+  --green-dim: #1a5c3a12;
+  --border:    #d8d0c4;
+  --border2:   #c4b9aa;
+  --serif:     'Cormorant Garamond', Georgia, serif;
+  --sans:      'Outfit', sans-serif;
+  --mono:      'DM Mono', monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{
+  background:var(--parchment);
+  color:var(--ink);
+  font-family:var(--sans);
+  font-size:15px;
+  line-height:1.7;
+  min-height:100vh;
+}
+body::before{
+  content:'';position:fixed;inset:0;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  opacity:.018;pointer-events:none;z-index:0;
+}
+::-webkit-scrollbar{width:6px}
+::-webkit-scrollbar-track{background:var(--sand)}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+
+/* ── Layout ── */
+.app{position:relative;z-index:1;min-height:100vh;display:flex;flex-direction:column}
+
+/* ── Topbar ── */
+.topbar{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 40px;height:64px;
+  background:rgba(250,247,242,.94);
+  backdrop-filter:blur(12px);
+  border-bottom:1px solid var(--border);
+  position:sticky;top:0;z-index:100;
+}
+.logo{display:flex;align-items:center;gap:10px;text-decoration:none;cursor:pointer}
+.logo-mark{
+  width:32px;height:32px;background:var(--ink);border-radius:6px;
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--serif);font-size:18px;font-weight:600;
+  color:var(--parchment);letter-spacing:-.5px;flex-shrink:0;
+}
+.logo-text{font-family:var(--serif);font-size:20px;font-weight:600;color:var(--ink);letter-spacing:-.3px}
+.logo-ticker{font-family:var(--mono);font-size:10px;color:var(--gold);letter-spacing:1px;margin-left:2px}
+.nav{display:flex;align-items:center;gap:4px}
+.nav-btn{
+  background:none;border:none;cursor:pointer;
+  padding:8px 14px;border-radius:6px;
+  font-family:var(--sans);font-size:13px;font-weight:500;
+  color:var(--ink3);transition:all .15s;
+}
+.nav-btn:hover{background:var(--sand);color:var(--ink)}
+.nav-btn.active{background:var(--sand2);color:var(--ink);font-weight:600}
+.wallet-area{display:flex;align-items:center;gap:10px}
+.wallet-info{
+  font-family:var(--mono);font-size:11px;color:var(--ink3);
+  padding:6px 12px;background:var(--sand);border:1px solid var(--border);
+  border-radius:6px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.btn{
+  display:inline-flex;align-items:center;gap:7px;
+  padding:9px 18px;border-radius:7px;
+  font-family:var(--sans);font-size:13px;font-weight:600;
+  cursor:pointer;border:none;transition:all .15s;text-decoration:none;
+}
+.btn-primary{background:var(--ink);color:var(--parchment)}
+.btn-primary:hover{background:var(--ink2);transform:translateY(-1px);box-shadow:0 4px 16px rgba(28,24,20,.15)}
+.btn-secondary{background:var(--sand);color:var(--ink);border:1px solid var(--border2)}
+.btn-secondary:hover{background:var(--sand2);transform:translateY(-1px)}
+.btn-gold{background:var(--gold);color:#fff}
+.btn-gold:hover{background:var(--gold2);transform:translateY(-1px);box-shadow:0 4px 16px rgba(184,134,11,.25)}
+.btn-sm{padding:6px 13px;font-size:12px}
+.btn:disabled{opacity:.45;cursor:not-allowed;transform:none !important}
+
+/* ── Main ── */
+main{flex:1;padding:48px 40px;max-width:1100px;margin:0 auto;width:100%}
+
+/* ── Hero ── */
+.hero{
+  text-align:center;padding:72px 0 56px;
+  border-bottom:2px solid var(--ink);
+  margin-bottom:48px;
+}
+.hero-date{
+  font-family:var(--mono);font-size:10px;
+  text-transform:uppercase;letter-spacing:3px;
+  color:var(--muted);margin-bottom:10px;
+}
+.hero-rule{
+  display:flex;align-items:center;gap:16px;
+  justify-content:center;margin-bottom:20px;
+}
+.hero-rule-line{flex:1;max-width:120px;height:1px;background:var(--border2)}
+.hero-eyebrow{
+  font-family:var(--mono);font-size:9px;
+  text-transform:uppercase;letter-spacing:3px;
+  color:var(--gold);
+}
+.hero-title{
+  font-family:var(--serif);
+  font-size:clamp(44px,6vw,76px);
+  font-weight:300;line-height:1.02;
+  letter-spacing:-2px;color:var(--ink);
+  margin-bottom:16px;
+}
+.hero-title em{font-style:italic}
+.hero-sub{
+  font-size:15px;color:var(--ink3);font-weight:300;
+  max-width:500px;margin:0 auto 32px;line-height:1.7;
+}
+.hero-actions{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+.hero-tagline{
+  margin-top:28px;
+  font-family:var(--serif);font-size:13px;font-style:italic;
+  color:var(--muted);letter-spacing:.3px;
+}
+
+/* ── Stats bar ── */
+.stats-bar{
+  display:grid;grid-template-columns:repeat(3,1fr);
+  gap:1px;background:var(--border);
+  border:1px solid var(--border);border-radius:10px;
+  overflow:hidden;margin-bottom:48px;
+}
+.stat{background:var(--parchment);padding:24px 28px}
+.stat-label{font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:2px;color:var(--muted);margin-bottom:6px}
+.stat-value{font-family:var(--serif);font-size:30px;font-weight:300;color:var(--ink);letter-spacing:-.5px}
+
+/* ── Section ── */
+.section-head{
+  display:flex;align-items:baseline;justify-content:space-between;
+  margin-bottom:24px;padding-bottom:12px;
+  border-bottom:1px solid var(--border2);
+}
+.section-title{font-family:var(--serif);font-size:26px;font-weight:400;letter-spacing:-.5px}
+.section-sub{font-size:12px;color:var(--muted)}
+
+/* ── Content grid ── */
+.content-grid{
+  display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));
+  gap:18px;margin-bottom:48px;
+}
+.content-card{
+  background:var(--parchment);border:1px solid var(--border);border-radius:10px;
+  padding:22px;cursor:pointer;transition:all .2s;position:relative;overflow:hidden;
+}
+.content-card:hover{border-color:var(--border2);box-shadow:0 4px 24px rgba(28,24,20,.08);transform:translateY(-2px)}
+.card-type{
+  display:inline-flex;align-items:center;gap:5px;
+  font-family:var(--mono);font-size:9px;
+  text-transform:uppercase;letter-spacing:1.5px;
+  padding:3px 8px;border-radius:3px;
+  background:var(--sand);color:var(--ink3);margin-bottom:12px;
+}
+.card-title{
+  font-family:var(--serif);font-size:20px;font-weight:400;
+  line-height:1.2;letter-spacing:-.3px;margin-bottom:8px;color:var(--ink);
+}
+.card-desc{
+  font-size:13px;color:var(--ink3);line-height:1.6;margin-bottom:16px;
+  display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;
+}
+.card-meta{
+  display:flex;align-items:center;justify-content:space-between;
+  padding-top:12px;border-top:1px solid var(--sand3);
+}
+.card-creator{font-size:11px;color:var(--muted);font-family:var(--mono)}
+.card-price{font-family:var(--serif);font-size:16px;font-weight:600;color:var(--gold)}
+.card-price.free{color:var(--green);font-size:12px;font-family:var(--sans);font-weight:600}
+.card-licensed{
+  display:inline-flex;align-items:center;gap:4px;
+  font-size:11px;font-family:var(--mono);
+  color:var(--green);padding:2px 7px;background:var(--green-dim);border-radius:3px;
+}
+
+/* ── Empty ── */
+.empty{
+  text-align:center;padding:72px 40px;
+  border:1px dashed var(--border2);border-radius:10px;grid-column:1/-1;
+}
+.empty-icon{font-size:36px;margin-bottom:14px;opacity:.35}
+.empty-title{font-family:var(--serif);font-size:22px;font-weight:300;color:var(--ink2);margin-bottom:6px}
+.empty-sub{font-size:13px;color:var(--muted)}
+
+/* ── Modal ── */
+.modal-backdrop{
+  position:fixed;inset:0;background:rgba(28,24,20,.45);
+  backdrop-filter:blur(6px);z-index:200;
+  display:flex;align-items:center;justify-content:center;padding:20px;
+  opacity:0;pointer-events:none;transition:opacity .2s;
+}
+.modal-backdrop.open{opacity:1;pointer-events:all}
+.modal{
+  background:var(--parchment);border:1px solid var(--border);border-radius:14px;
+  width:100%;max-width:560px;max-height:90vh;overflow-y:auto;
+  box-shadow:0 20px 80px rgba(28,24,20,.2);
+  transform:translateY(8px);transition:transform .2s;
+}
+.modal-backdrop.open .modal{transform:translateY(0)}
+.modal-head{
+  padding:24px 28px 18px;border-bottom:1px solid var(--border);
+  display:flex;align-items:flex-start;justify-content:space-between;
+}
+.modal-title{font-family:var(--serif);font-size:24px;font-weight:400;letter-spacing:-.3px}
+.modal-close{background:none;border:none;cursor:pointer;font-size:18px;color:var(--muted);padding:4px;line-height:1;transition:color .15s}
+.modal-close:hover{color:var(--ink)}
+.modal-body{padding:24px 28px}
+
+/* ── Form ── */
+.form-group{margin-bottom:18px}
+.form-label{display:block;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.8px;color:var(--ink3);margin-bottom:6px}
+.form-input,.form-textarea,.form-select{
+  width:100%;padding:10px 13px;background:var(--parchment);
+  border:1px solid var(--border);border-radius:7px;
+  font-family:var(--sans);font-size:14px;color:var(--ink);
+  transition:border-color .15s;outline:none;appearance:none;
+}
+.form-input:focus,.form-textarea:focus,.form-select:focus{border-color:var(--gold);box-shadow:0 0 0 3px var(--gold-dim)}
+.form-textarea{min-height:90px;resize:vertical;line-height:1.6}
+.form-select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236b5e50' d='M6 8L1 3h10z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center}
+.form-hint{font-size:11px;color:var(--muted);margin-top:4px}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.form-footer{display:flex;align-items:center;justify-content:flex-end;gap:10px;padding-top:18px;border-top:1px solid var(--border);margin-top:6px}
+.key-display{
+  background:var(--sand);border:1px solid var(--border);border-radius:7px;
+  padding:12px;font-family:var(--mono);font-size:11px;
+  color:var(--ink3);word-break:break-all;line-height:1.7;margin-top:5px;
+}
+.warning-box{
+  background:rgba(139,26,26,.06);border:1px solid rgba(139,26,26,.2);
+  border-radius:7px;padding:12px 14px;font-size:13px;color:var(--red);margin:14px 0;
+  display:flex;gap:8px;align-items:flex-start;
+}
+
+/* ── Detail modal ── */
+.content-detail .modal{max-width:620px}
+.detail-hash{
+  font-family:var(--mono);font-size:11px;color:var(--muted);
+  word-break:break-all;background:var(--sand);padding:10px 13px;
+  border-radius:6px;margin:12px 0;
+}
+.detail-license{
+  background:var(--sand2);border-left:3px solid var(--gold);
+  padding:11px 15px;border-radius:0 6px 6px 0;
+  font-size:13px;color:var(--ink2);margin:12px 0;
+}
+.detail-stats{
+  display:grid;grid-template-columns:repeat(3,1fr);
+  gap:1px;background:var(--border);border-radius:8px;overflow:hidden;margin:18px 0;
+}
+.detail-stat{background:var(--sand);padding:14px;text-align:center}
+.detail-stat-val{font-family:var(--serif);font-size:20px;font-weight:400;color:var(--ink)}
+.detail-stat-label{font-size:10px;font-family:var(--mono);color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-top:3px}
+
+/* ── Wallet panel ── */
+.wallet-panel{
+  background:var(--sand);border:1px solid var(--border);border-radius:12px;
+  padding:28px;margin-bottom:36px;
+  display:flex;align-items:center;gap:28px;
+}
+.wallet-avatar{
+  width:56px;height:56px;border-radius:10px;background:var(--ink);
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--serif);font-size:26px;color:var(--parchment);flex-shrink:0;
+}
+.wallet-details{flex:1}
+.wallet-name{font-family:var(--serif);font-size:20px;font-weight:400;margin-bottom:3px}
+.wallet-addr{font-family:var(--mono);font-size:11px;color:var(--muted);word-break:break-all}
+.wallet-balance{font-family:var(--serif);font-size:26px;font-weight:300;color:var(--gold)}
+.wallet-bal-label{font-size:10px;font-family:var(--mono);color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-top:3px}
+
+/* ── Tabs ── */
+.tabs{display:flex;gap:2px;margin-bottom:32px}
+.tab{
+  padding:8px 16px;border-radius:6px;font-size:13px;font-weight:500;
+  cursor:pointer;border:none;background:none;color:var(--ink3);transition:all .15s;
+}
+.tab.active{background:var(--ink);color:var(--parchment)}
+.tab:not(.active):hover{background:var(--sand2)}
+
+/* ── Toast ── */
+.toasts{position:fixed;bottom:24px;right:24px;z-index:500;display:flex;flex-direction:column;gap:8px}
+.toast{
+  background:var(--ink);color:var(--parchment);
+  padding:11px 16px;border-radius:8px;
+  font-size:13px;max-width:300px;
+  display:flex;align-items:center;gap:8px;
+  animation:slideIn .2s ease;
+}
+.toast.success{background:var(--green)}
+.toast.error{background:var(--red)}
+@keyframes slideIn{from{transform:translateX(16px);opacity:0}to{transform:translateX(0);opacity:1}}
+
+/* ── Spinner ── */
+.spinner{
+  width:16px;height:16px;border-radius:50%;
+  border:2px solid rgba(255,255,255,.3);
+  border-top-color:currentColor;
+  animation:spin .6s linear infinite;flex-shrink:0;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ── Footer ── */
+footer{
+  text-align:center;padding:24px;border-top:1px solid var(--border);
+  font-family:var(--mono);font-size:10px;color:var(--muted);
+  text-transform:uppercase;letter-spacing:1.5px;
+  display:flex;align-items:center;justify-content:center;gap:20px;flex-wrap:wrap;
+}
+
+@media(max-width:680px){
+  .topbar{padding:0 16px}
+  main{padding:28px 16px}
+  .hero{padding:40px 0 32px}
+  .stats-bar,.detail-stats{grid-template-columns:1fr}
+  .form-row{grid-template-columns:1fr}
+  .wallet-panel{flex-direction:column;gap:16px;text-align:center}
+}
+</style>
+</head>
+<body>
+<div class="app" id="app">
+
+  <header class="topbar">
+    <div class="logo" onclick="navigate('discover')">
+      <div class="logo-mark">F</div>
+      <span class="logo-text">ForgeCast</span>
+      <span class="logo-ticker">$FRG</span>
+    </div>
+    <nav class="nav">
+      <button class="nav-btn active" id="nav-discover" onclick="navigate('discover')">Discover</button>
+      <button class="nav-btn" id="nav-publish"  onclick="navigate('publish')">Publish</button>
+      <button class="nav-btn" id="nav-wallet"   onclick="navigate('wallet')">My Wallet</button>
+    </nav>
+    <div class="wallet-area">
+      <div class="wallet-info" id="wallet-display">No wallet</div>
+      <button class="btn btn-primary btn-sm" id="connect-btn" onclick="openWalletModal()">Connect</button>
+    </div>
+  </header>
+
+  <main id="main-content"></main>
+
+  <footer>
+    <span>ForgeCast · Canopy Betanet</span>
+    <span>$FRG · BLS12-381</span>
+    <span>No algorithms. No gatekeepers.</span>
+  </footer>
+</div>
+
+<!-- Wallet modal -->
+<div class="modal-backdrop" id="wallet-modal">
+  <div class="modal">
+    <div class="modal-head">
+      <h2 class="modal-title" id="wm-title">Connect Wallet</h2>
+      <button class="modal-close" onclick="closeModal('wallet-modal')">✕</button>
+    </div>
+    <div class="modal-body" id="wm-body"></div>
+  </div>
+</div>
+
+<!-- Content detail modal -->
+<div class="modal-backdrop content-detail" id="detail-modal">
+  <div class="modal">
+    <div class="modal-head">
+      <h2 class="modal-title" id="dm-title">Content</h2>
+      <button class="modal-close" onclick="closeModal('detail-modal')">✕</button>
+    </div>
+    <div class="modal-body" id="dm-body"></div>
+  </div>
+</div>
+
+<!-- Tip modal -->
+<div class="modal-backdrop" id="tip-modal">
+  <div class="modal">
+    <div class="modal-head">
+      <h2 class="modal-title">Tip Creator</h2>
+      <button class="modal-close" onclick="closeModal('tip-modal')">✕</button>
+    </div>
+    <div class="modal-body" id="tm-body"></div>
+  </div>
+</div>
+
+<div class="toasts" id="toasts"></div>
+
+<script>
+// ═══════════════════════════════════════════════════════
+//  CONFIG
+// ═══════════════════════════════════════════════════════
+const RPC = 'http://localhost:50002';
+
+// ═══════════════════════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════════════════════
+let wallet     = null;   // { privKey, pubKey }
+let bls        = null;   // @noble/curves bls12_381
+let contents   = [];
+let myLicenses = new Set();
+
+// ═══════════════════════════════════════════════════════
+//  BLS — dynamic import (mobile-safe)
+// ═══════════════════════════════════════════════════════
+async function loadBLS() {
+  if (bls) return bls;
+  const mod = await import('https://esm.sh/@noble/curves@1.4.2/bls12-381');
+  bls = mod.bls12_381;
+  return bls;
+}
+
+// ═══════════════════════════════════════════════════════
+//  NAVIGATION
+// ═══════════════════════════════════════════════════════
+let currentView = 'discover';
+function navigate(view) {
+  currentView = view;
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  const btn = document.getElementById('nav-' + view);
+  if (btn) btn.classList.add('active');
+  renderView();
+}
+async function renderView() {
+  const el = document.getElementById('main-content');
+  if (currentView === 'discover') await renderDiscover(el);
+  else if (currentView === 'publish') renderPublishPage(el);
+  else if (currentView === 'wallet') renderWalletPage(el);
+}
+
+// ═══════════════════════════════════════════════════════
+//  DISCOVER
+// ═══════════════════════════════════════════════════════
+async function renderDiscover(el) {
+  const now = new Date();
+  const dateStr = now.toLocaleDateString('en-US', {weekday:'long', year:'numeric', month:'long', day:'numeric'});
+
+  el.innerHTML = `
+    <div class="hero">
+      <div class="hero-date">${dateStr}</div>
+      <div class="hero-rule">
+        <div class="hero-rule-line"></div>
+        <span class="hero-eyebrow">Sovereign Content Chain · Canopy Network</span>
+        <div class="hero-rule-line"></div>
+      </div>
+      <h1 class="hero-title">The Creator Economy,<br/><em>Rebuilt on-chain.</em></h1>
+      <p class="hero-sub">Publish work. Prove ownership. Set your terms. Buyers pay creators directly — no platform takes a cut.</p>
+      <div class="hero-actions">
+        <button class="btn btn-primary" onclick="navigate('publish')">✦ Publish Content</button>
+        <button class="btn btn-secondary" onclick="openWalletModal()">Connect Wallet</button>
+      </div>
+      <p class="hero-tagline">No algorithms. No gatekeepers. Just creators and their audience.</p>
+    </div>
+
+    <div class="stats-bar">
+      <div class="stat">
+        <div class="stat-label">Content Published</div>
+        <div class="stat-value" id="stat-content">—</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Licenses Issued</div>
+        <div class="stat-value" id="stat-licenses">—</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Node Status</div>
+        <div class="stat-value" id="stat-node" style="font-size:14px;font-family:var(--mono);color:var(--muted)">checking…</div>
+      </div>
+    </div>
+
+    <div class="section-head">
+      <h2 class="section-title">Latest Works</h2>
+      <span class="section-sub">Sorted by publication block</span>
+    </div>
+    <div class="content-grid" id="content-grid">
+      <div class="empty"><div class="empty-icon">✦</div><div class="empty-title">Loading…</div></div>
+    </div>`;
+
+  checkNode();
+  await loadContents();
+}
+
+async function checkNode() {
+  try {
+    const r = await fetch(`${RPC}/v1/query/height`, {signal: AbortSignal.timeout(3000)});
+    const d = await r.json();
+    const el = document.getElementById('stat-node');
+    if (el) { el.textContent = `Block ${d.height ?? '?'}`; el.style.color = 'var(--green)'; }
+  } catch {
+    const el = document.getElementById('stat-node');
+    if (el) { el.textContent = 'Offline'; el.style.color = 'var(--red)'; }
+  }
+}
+
+async function loadContents() {
+  try {
+    const r = await fetch(`${RPC}/v1/query/state?prefix=0110&page=1&perPage=50`);
+    const d = await r.json();
+    contents = (d.results || []).map(x => {
+      try { return JSON.parse(atob(x.value)); } catch { return null; }
+    }).filter(Boolean).sort((a, b) => (b.published_at || 0) - (a.published_at || 0));
+    const totalLic = contents.reduce((s, c) => s + (c.license_count || 0), 0);
+    const sc = document.getElementById('stat-content');
+    const sl = document.getElementById('stat-licenses');
+    if (sc) sc.textContent = contents.length;
+    if (sl) sl.textContent = totalLic;
+  } catch {
+    contents = [];
+  }
+  renderGrid();
+}
+
+function renderGrid() {
+  const grid = document.getElementById('content-grid');
+  if (!grid) return;
+  if (!contents.length) {
+    grid.innerHTML = `<div class="empty"><div class="empty-icon">✦</div><div class="empty-title">No content yet</div><p class="empty-sub">Be the first to publish on ForgeCast.</p></div>`;
+    return;
+  }
+  grid.innerHTML = contents.map(c => {
+    const creator = bytesToHex(c.creator_address || []);
+    const licensed = myLicenses.has(c.id);
+    return `
+      <div class="content-card" onclick="openDetail(${c.id})">
+        <div class="card-type">${typeIcon(c.content_type)} ${c.content_type || 'content'}</div>
+        <div class="card-title">${esc(c.title)}</div>
+        <div class="card-desc">${esc(c.description || 'No description.')}</div>
+        <div class="card-meta">
+          <span class="card-creator">${shortAddr(creator)}</span>
+          ${licensed
+            ? `<span class="card-licensed">✓ Licensed</span>`
+            : c.price_ufrg > 0
+              ? `<span class="card-price">${fmtFRG(c.price_ufrg)} $FRG</span>`
+              : `<span class="card-price free">Free</span>`
+          }
+        </div>
+      </div>`;
+  }).join('');
+}
+
+// ═══════════════════════════════════════════════════════
+//  PUBLISH PAGE
+// ═══════════════════════════════════════════════════════
+function renderPublishPage(el) {
+  if (!wallet) {
+    el.innerHTML = `
+      <div style="text-align:center;padding:80px 0">
+        <div style="font-family:var(--serif);font-size:32px;font-weight:300;margin-bottom:10px">Connect to Publish</div>
+        <p style="color:var(--ink3);margin-bottom:24px">You need a wallet to publish on ForgeCast.</p>
+        <button class="btn btn-primary" onclick="openWalletModal()">Connect Wallet</button>
+      </div>`;
+    return;
+  }
+  el.innerHTML = `
+    <div class="section-head"><h2 class="section-title">Publish New Work</h2></div>
+    <div style="max-width:580px">
+      <div class="form-group">
+        <label class="form-label">Title *</label>
+        <input class="form-input" id="pub-title" placeholder="What is this work called?" maxlength="200"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Content Hash *</label>
+        <input class="form-input" id="pub-hash" placeholder="IPFS CID or sha256:…"/>
+        <div class="form-hint">Upload to IPFS first, paste the CID here. This permanently proves authorship.</div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Content Type *</label>
+          <select class="form-select" id="pub-type">
+            <option value="article">Article</option>
+            <option value="image">Image</option>
+            <option value="audio">Audio</option>
+            <option value="video">Video</option>
+            <option value="dataset">Dataset</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Price ($FRG) — 0 = Free</label>
+          <input class="form-input" id="pub-price" type="number" min="0" step="0.000001" placeholder="0.00"/>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">License Terms *</label>
+        <input class="form-input" id="pub-license" placeholder="e.g. CC BY 4.0, All rights reserved, Personal use only"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Description</label>
+        <textarea class="form-textarea" id="pub-desc" placeholder="A short description of your work…" maxlength="500"></textarea>
+        <div class="form-hint">Max 500 characters.</div>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:4px">
+        <button class="btn btn-primary" id="pub-btn" onclick="submitPublish()">✦ Publish On-Chain</button>
+        <button class="btn btn-secondary" onclick="navigate('discover')">Cancel</button>
+      </div>
+      <div id="pub-status" style="margin-top:14px;font-size:12px;color:var(--muted)"></div>
+    </div>`;
+}
+
+async function submitPublish() {
+  if (!wallet) return toast('Connect your wallet first', 'error');
+  const title   = document.getElementById('pub-title').value.trim();
+  const hash    = document.getElementById('pub-hash').value.trim();
+  const type    = document.getElementById('pub-type').value;
+  const priceF  = parseFloat(document.getElementById('pub-price').value) || 0;
+  const license = document.getElementById('pub-license').value.trim();
+  const desc    = document.getElementById('pub-desc').value.trim();
+
+  if (!title)   return toast('Title is required', 'error');
+  if (!hash)    return toast('Content hash is required', 'error');
+  if (!license) return toast('License terms are required', 'error');
+
+  const priceUfrg = Math.round(priceF * 1_000_000);
+  const btn = document.getElementById('pub-btn');
+  const status = document.getElementById('pub-status');
+  btn.disabled = true;
+  btn.innerHTML = `<div class="spinner"></div> Signing…`;
+  status.textContent = 'Encoding transaction…';
+
+  try {
+    const b = await loadBLS();
+    const txTime = BigInt(Date.now() * 1000);
+
+    const msgBytes = encodePublishContent({
+      creator_address: wallet.pubKey,
+      title, content_hash: hash, license_terms: license,
+      price_ufrg: priceUfrg, content_type: type, description: desc
+    });
+
+    const signBytes = buildSignBytes({
+      type: 'publish_content',
+      msgTypeUrl: 'type.googleapis.com/types.MessagePublishContent',
+      msgBytes, fee: 10000, time: txTime
+    }, wallet.pubKey);
+
+    status.textContent = 'Signing with BLS12-381…';
+    const sig = await b.sign(signBytes, wallet.privKey);
+
+    status.textContent = 'Broadcasting…';
+    const body = {
+      type: 'publish_content',
+      msgTypeUrl: 'type.googleapis.com/types.MessagePublishContent',
+      msgBytes: bytesToHex(msgBytes),
+      fee: 10000,
+      time: Number(txTime),
+      memo: '',
+      signature: { publicKey: bytesToHex(wallet.pubKey), signature: bytesToHex(sig) }
+    };
+
+    const res = await fetch(`${RPC}/v1/txs`, {
+      method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body)
+    });
+    const data = await res.json();
+    if (!res.ok || data.error) throw new Error(data.error || data.message || 'Transaction failed');
+
+    toast('Content published! ✦', 'success');
+    navigate('discover');
+  } catch(e) {
+    toast(e.message || 'Failed to publish', 'error');
+    btn.disabled = false;
+    btn.innerHTML = '✦ Publish On-Chain';
+    status.textContent = '';
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+//  WALLET PAGE
+// ═══════════════════════════════════════════════════════
+function renderWalletPage(el) {
+  if (!wallet) {
+    el.innerHTML = `
+      <div style="text-align:center;padding:80px 0">
+        <div style="font-family:var(--serif);font-size:32px;font-weight:300;margin-bottom:10px">No Wallet Connected</div>
+        <button class="btn btn-primary" onclick="openWalletModal()">Connect Wallet</button>
+      </div>`;
+    return;
+  }
+  const addr = bytesToHex(wallet.pubKey);
+  el.innerHTML = `
+    <div class="wallet-panel">
+      <div class="wallet-avatar">${addr.slice(0,1).toUpperCase()}</div>
+      <div class="wallet-details">
+        <div class="wallet-name">Creator Account</div>
+        <div class="wallet-addr">${addr}</div>
+      </div>
+      <div style="text-align:right">
+        <div class="wallet-balance" id="wp-balance">—</div>
+        <div class="wallet-bal-label">$FRG Balance</div>
+      </div>
+    </div>
+    <div class="tabs">
+      <button class="tab active" id="tab-my-content"  onclick="showTab('my-content')">My Content</button>
+      <button class="tab"        id="tab-my-licenses" onclick="showTab('my-licenses')">My Licenses</button>
+      <button class="tab"        id="tab-send"        onclick="showTab('send')">Send $FRG</button>
+    </div>
+    <div id="tab-panel"></div>`;
+
+  loadBalance(addr);
+  showTab('my-content');
+}
+
+async function loadBalance(addr) {
+  try {
+    const r = await fetch(`${RPC}/v1/query/account?address=${addr}`);
+    const d = await r.json();
+    const el = document.getElementById('wp-balance');
+    if (el) el.textContent = fmtFRG(d.amount || 0) + ' $FRG';
+  } catch {}
+}
+
+function showTab(name) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  const btn = document.getElementById('tab-' + name);
+  if (btn) btn.classList.add('active');
+  const panel = document.getElementById('tab-panel');
+  if (!panel) return;
+
+  if (name === 'my-content') {
+    const addr = bytesToHex(wallet.pubKey);
+    const mine = contents.filter(c => bytesToHex(c.creator_address || []) === addr);
+    if (!mine.length) {
+      panel.innerHTML = `<div class="empty"><div class="empty-icon">✦</div><div class="empty-title">No published content yet</div><p class="empty-sub" style="margin-top:14px"><button class="btn btn-primary btn-sm" onclick="navigate('publish')">Publish your first work</button></p></div>`;
+    } else {
+      panel.innerHTML = `<div class="content-grid">${mine.map(c => `
+        <div class="content-card" onclick="openDetail(${c.id})">
+          <div class="card-type">${typeIcon(c.content_type)} ${c.content_type}</div>
+          <div class="card-title">${esc(c.title)}</div>
+          <div class="card-meta">
+            <span class="card-creator">${c.license_count || 0} licenses</span>
+            <span class="card-price">${c.price_ufrg > 0 ? fmtFRG(c.price_ufrg)+' $FRG' : 'Free'}</span>
+          </div>
+        </div>`).join('')}</div>`;
+    }
+  } else if (name === 'my-licenses') {
+    const licensed = contents.filter(c => myLicenses.has(c.id));
+    if (!licensed.length) {
+      panel.innerHTML = `<div class="empty"><div class="empty-icon">✦</div><div class="empty-title">No licenses yet</div><p class="empty-sub">Browse content and purchase a license.</p></div>`;
+    } else {
+      panel.innerHTML = `<div class="content-grid">${licensed.map(c => `
+        <div class="content-card" onclick="openDetail(${c.id})">
+          <div class="card-type">${typeIcon(c.content_type)} ${c.content_type}</div>
+          <div class="card-title">${esc(c.title)}</div>
+          <div class="card-meta">
+            <span class="card-creator">${shortAddr(bytesToHex(c.creator_address||[]))}</span>
+            <span class="card-licensed">✓ Licensed</span>
+          </div>
+        </div>`).join('')}</div>`;
+    }
+  } else if (name === 'send') {
+    panel.innerHTML = `
+      <div style="max-width:400px">
+        <div class="form-group">
+          <label class="form-label">Recipient Address (hex public key)</label>
+          <input class="form-input" id="send-to" placeholder="0x…"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Amount ($FRG)</label>
+          <input class="form-input" id="send-amount" type="number" min="0" step="0.000001" placeholder="0.00"/>
+        </div>
+        <button class="btn btn-gold" id="send-btn" onclick="submitSend()">Send $FRG</button>
+        <div id="send-status" style="margin-top:12px;font-size:12px;color:var(--muted)"></div>
+      </div>`;
+  }
+}
+
+async function submitSend() {
+  if (!wallet) return;
+  const to  = document.getElementById('send-to').value.trim();
+  const amt = parseFloat(document.getElementById('send-amount').value) || 0;
+  if (!to)      return toast('Recipient required', 'error');
+  if (amt <= 0) return toast('Amount must be > 0', 'error');
+  const amtUfrg = Math.round(amt * 1_000_000);
+  const btn = document.getElementById('send-btn');
+  btn.disabled = true; btn.innerHTML = `<div class="spinner"></div> Sending…`;
+  try {
+    const b = await loadBLS();
+    const txTime = BigInt(Date.now() * 1000);
+    const toBytes = hexToBytes(to);
+    const msgBytes = encodeSend({ from_address: wallet.pubKey, to_address: toBytes, amount: amtUfrg });
+    const signBytes = buildSignBytes({ type: 'send', msg: msgBytes, fee: 10000, time: txTime }, wallet.pubKey);
+    const sig = await b.sign(signBytes, wallet.privKey);
+    const body = {
+      type: 'send',
+      msg: { '@type': 'type.googleapis.com/types.MessageSend', value: bytesToBase64(msgBytes) },
+      fee: 10000, time: Number(txTime), memo: '',
+      signature: { publicKey: bytesToHex(wallet.pubKey), signature: bytesToHex(sig) }
+    };
+    const res = await fetch(`${RPC}/v1/txs`, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) });
+    const data = await res.json();
+    if (!res.ok || data.error) throw new Error(data.error || 'Send failed');
+    toast('Sent! ✦', 'success');
+    btn.disabled = false; btn.innerHTML = 'Send $FRG';
+    loadBalance(bytesToHex(wallet.pubKey));
+  } catch(e) {
+    toast(e.message || 'Send failed', 'error');
+    btn.disabled = false; btn.innerHTML = 'Send $FRG';
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+//  CONTENT DETAIL
+// ═══════════════════════════════════════════════════════
+function openDetail(id) {
+  const c = contents.find(x => x.id === id);
+  if (!c) return;
+  const licensed = myLicenses.has(id);
+  const isMine = wallet && bytesToHex(wallet.pubKey) === bytesToHex(c.creator_address || []);
+  const creator = bytesToHex(c.creator_address || []);
+
+  document.getElementById('dm-title').textContent = c.title;
+  document.getElementById('dm-body').innerHTML = `
+    <div class="card-type" style="margin-bottom:12px">${typeIcon(c.content_type)} ${c.content_type}</div>
+    <p style="color:var(--ink2);font-size:14px;line-height:1.7;margin-bottom:14px">${esc(c.description || 'No description provided.')}</p>
+    <div style="font-size:10px;font-family:var(--mono);color:var(--muted);margin-bottom:5px;text-transform:uppercase;letter-spacing:1px">Content Hash</div>
+    <div class="detail-hash">${esc(c.content_hash)}</div>
+    <div style="font-size:10px;font-family:var(--mono);color:var(--muted);margin-bottom:5px;text-transform:uppercase;letter-spacing:1px">License Terms</div>
+    <div class="detail-license">${esc(c.license_terms)}</div>
+    <div class="detail-stats">
+      <div class="detail-stat">
+        <div class="detail-stat-val">${c.price_ufrg > 0 ? fmtFRG(c.price_ufrg) : 'Free'}</div>
+        <div class="detail-stat-label">$FRG Price</div>
+      </div>
+      <div class="detail-stat">
+        <div class="detail-stat-val">${c.license_count || 0}</div>
+        <div class="detail-stat-label">Licenses</div>
+      </div>
+      <div class="detail-stat">
+        <div class="detail-stat-val">${c.published_at || '—'}</div>
+        <div class="detail-stat-label">Block</div>
+      </div>
+    </div>
+    <div style="font-size:11px;font-family:var(--mono);color:var(--muted);margin-bottom:18px">Creator: ${creator}</div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      ${isMine
+        ? `<span style="font-size:13px;color:var(--gold);font-family:var(--mono)">✦ Your content</span>`
+        : licensed
+          ? `<span class="card-licensed" style="font-size:13px;padding:6px 12px">✓ You hold a license</span>`
+          : `<button class="btn btn-primary" id="purchase-btn" onclick="purchaseLicense(${c.id})">${c.price_ufrg > 0 ? `Purchase · ${fmtFRG(c.price_ufrg)} $FRG` : 'Get Free License'}</button>`
+      }
+      ${!isMine ? `<button class="btn btn-secondary" onclick="openTipModal('${creator}')">Tip Creator</button>` : ''}
+    </div>`;
+  openModal('detail-modal');
+}
+
+async function purchaseLicense(contentId) {
+  if (!wallet) { closeModal('detail-modal'); return openWalletModal(); }
+  const c = contents.find(x => x.id === contentId);
+  if (!c) return;
+  const btn = document.getElementById('purchase-btn');
+  if (btn) { btn.disabled = true; btn.innerHTML = `<div class="spinner"></div> Processing…`; }
+  try {
+    const b = await loadBLS();
+    const txTime = BigInt(Date.now() * 1000);
+    const msgBytes = encodePurchaseLicense({ buyer_address: wallet.pubKey, content_id: contentId, amount_ufrg: c.price_ufrg });
+    const signBytes = buildSignBytes({ type: 'purchase_license', msgTypeUrl: 'type.googleapis.com/types.MessagePurchaseLicense', msgBytes, fee: 10000, time: txTime }, wallet.pubKey);
+    const sig = await b.sign(signBytes, wallet.privKey);
+    const body = { type: 'purchase_license', msgTypeUrl: 'type.googleapis.com/types.MessagePurchaseLicense', msgBytes: bytesToHex(msgBytes), fee: 10000, time: Number(txTime), memo: '', signature: { publicKey: bytesToHex(wallet.pubKey), signature: bytesToHex(sig) } };
+    const res = await fetch(`${RPC}/v1/txs`, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) });
+    const data = await res.json();
+    if (!res.ok || data.error) throw new Error(data.error || 'Purchase failed');
+    myLicenses.add(contentId);
+    toast('License acquired! ✦', 'success');
+    closeModal('detail-modal');
+    renderGrid();
+  } catch(e) {
+    toast(e.message || 'Purchase failed', 'error');
+    if (btn) { btn.disabled = false; btn.innerHTML = `Purchase · ${fmtFRG(c.price_ufrg)} $FRG`; }
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+//  TIP MODAL
+// ═══════════════════════════════════════════════════════
+function openTipModal(creatorHex) {
+  closeModal('detail-modal');
+  document.getElementById('tm-body').innerHTML = `
+    <p style="color:var(--ink3);font-size:13px;margin-bottom:18px">Send a direct $FRG tip. 100% goes to the creator — no platform fee on tips.</p>
+    <div class="form-group">
+      <label class="form-label">Amount ($FRG)</label>
+      <input class="form-input" id="tip-amount" type="number" min="0.000001" step="0.000001" placeholder="1.00"/>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Message (optional)</label>
+      <input class="form-input" id="tip-message" placeholder="Love this work!" maxlength="280"/>
+    </div>
+    <div class="form-footer">
+      <button class="btn btn-secondary" onclick="closeModal('tip-modal')">Cancel</button>
+      <button class="btn btn-gold" id="tip-btn" onclick="submitTip('${creatorHex}')">Send Tip</button>
+    </div>`;
+  openModal('tip-modal');
+}
+
+async function submitTip(creatorHex) {
+  if (!wallet) return toast('Connect wallet first', 'error');
+  const amt = parseFloat(document.getElementById('tip-amount').value) || 0;
+  const msg = document.getElementById('tip-message').value.trim();
+  if (amt <= 0) return toast('Tip must be > 0', 'error');
+  const amtUfrg = Math.round(amt * 1_000_000);
+  const btn = document.getElementById('tip-btn');
+  btn.disabled = true; btn.innerHTML = `<div class="spinner"></div> Sending…`;
+  try {
+    const b = await loadBLS();
+    const txTime = BigInt(Date.now() * 1000);
+    const creatorBytes = hexToBytes(creatorHex);
+    const msgBytes = encodeTipCreator({ sender_address: wallet.pubKey, creator_address: creatorBytes, amount_ufrg: amtUfrg, message: msg });
+    const signBytes = buildSignBytes({ type: 'tip_creator', msgTypeUrl: 'type.googleapis.com/types.MessageTipCreator', msgBytes, fee: 10000, time: txTime }, wallet.pubKey);
+    const sig = await b.sign(signBytes, wallet.privKey);
+    const body = { type: 'tip_creator', msgTypeUrl: 'type.googleapis.com/types.MessageTipCreator', msgBytes: bytesToHex(msgBytes), fee: 10000, time: Number(txTime), memo: '', signature: { publicKey: bytesToHex(wallet.pubKey), signature: bytesToHex(sig) } };
+    const res = await fetch(`${RPC}/v1/txs`, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) });
+    const data = await res.json();
+    if (!res.ok || data.error) throw new Error(data.error || 'Tip failed');
+    toast('Tip sent! ✦', 'success');
+    closeModal('tip-modal');
+  } catch(e) {
+    toast(e.message || 'Tip failed', 'error');
+    btn.disabled = false; btn.innerHTML = 'Send Tip';
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+//  WALLET MODAL
+// ═══════════════════════════════════════════════════════
+function openWalletModal() {
+  wallet ? renderWalletConnected() : renderWalletConnect();
+  openModal('wallet-modal');
+}
+function renderWalletConnect() {
+  document.getElementById('wm-title').textContent = 'Connect Wallet';
+  document.getElementById('wm-body').innerHTML = `
+    <p style="color:var(--ink3);font-size:13px;margin-bottom:22px">ForgeCast uses BLS12-381 key pairs on Canopy Network. Generate a new wallet or import an existing private key.</p>
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <button class="btn btn-primary" onclick="generateWallet()">✦ Generate New Wallet</button>
+      <div style="text-align:center;color:var(--muted);font-size:12px;padding:4px 0">— or —</div>
+      <div class="form-group" style="margin:0">
+        <label class="form-label">Import Private Key (64 hex chars)</label>
+        <input class="form-input" id="import-key" type="password" placeholder="Paste your private key"/>
+      </div>
+      <button class="btn btn-secondary" onclick="importWallet()">Import Wallet</button>
+    </div>`;
+}
+function renderWalletConnected() {
+  document.getElementById('wm-title').textContent = 'Wallet Connected';
+  const addr = bytesToHex(wallet.pubKey);
+  document.getElementById('wm-body').innerHTML = `
+    <div class="key-display">${addr}</div>
+    <div class="warning-box">⚠ Save your private key — this wallet lives in memory only.</div>
+    <div class="form-group" style="margin-top:14px">
+      <label class="form-label">Private Key</label>
+      <div class="key-display">${bytesToHex(wallet.privKey)}</div>
+      <div class="form-hint">Copy and store this securely.</div>
+    </div>
+    <div style="margin-top:18px">
+      <button class="btn btn-secondary" onclick="disconnectWallet()">Disconnect</button>
+    </div>`;
+}
+async function generateWallet() {
+  const b = await loadBLS();
+  const privKey = b.utils.randomPrivateKey();
+  const pubKey  = await b.getPublicKey(privKey);
+  setWallet(privKey, pubKey);
+  closeModal('wallet-modal');
+  toast('New wallet created! Save your private key.', 'success');
+  renderView();
+}
+async function importWallet() {
+  const hex = document.getElementById('import-key').value.trim();
+  if (!hex || hex.length !== 64) return toast('Private key must be 64 hex characters', 'error');
+  try {
+    const b = await loadBLS();
+    const privKey = hexToBytes(hex);
+    const pubKey  = await b.getPublicKey(privKey);
+    setWallet(privKey, pubKey);
+    closeModal('wallet-modal');
+    toast('Wallet imported!', 'success');
+    renderView();
+  } catch { toast('Invalid private key', 'error'); }
+}
+function setWallet(privKey, pubKey) {
+  wallet = { privKey, pubKey };
+  const addr = bytesToHex(pubKey);
+  document.getElementById('wallet-display').textContent = shortAddr(addr);
+  const btn = document.getElementById('connect-btn');
+  btn.textContent = 'Wallet ↗';
+  btn.onclick = openWalletModal;
+}
+function disconnectWallet() {
+  wallet = null; myLicenses.clear();
+  document.getElementById('wallet-display').textContent = 'No wallet';
+  const btn = document.getElementById('connect-btn');
+  btn.textContent = 'Connect';
+  btn.onclick = openWalletModal;
+  closeModal('wallet-modal');
+  navigate('discover');
+}
+
+// ═══════════════════════════════════════════════════════
+//  PROTO ENCODING — hand-rolled minimal protobuf
+// ═══════════════════════════════════════════════════════
+function protoEncode(fields) {
+  const parts = [];
+  for (const f of fields) {
+    if (f.value === undefined || f.value === null) continue;
+    if (f.type === 'string') {
+      if (f.value === '') continue;
+      const enc = new TextEncoder().encode(f.value);
+      parts.push(encodeTag(f.field, 2), encodeVarint(enc.length), enc);
+    } else if (f.type === 'bytes') {
+      if (!f.value || f.value.length === 0) continue;
+      parts.push(encodeTag(f.field, 2), encodeVarint(f.value.length), f.value);
+    } else if (f.type === 'varint') {
+      if (f.value === 0) continue;
+      parts.push(encodeTag(f.field, 0), encodeVarint(f.value));
+    }
+  }
+  const len = parts.reduce((s, p) => s + p.length, 0);
+  const out = new Uint8Array(len);
+  let off = 0;
+  for (const p of parts) { out.set(p, off); off += p.length; }
+  return out;
+}
+function encodeTag(field, wire) { return encodeVarint((field << 3) | wire); }
+function encodeVarint(val) {
+  const bytes = [];
+  let v = typeof val === 'bigint' ? val : BigInt(val);
+  do {
+    let b = Number(v & 0x7fn);
+    v >>= 7n;
+    if (v > 0n) b |= 0x80;
+    bytes.push(b);
+  } while (v > 0n);
+  return new Uint8Array(bytes);
+}
+function encodePublishContent(m) {
+  return protoEncode([
+    {field:1, type:'bytes',  value:m.creator_address},
+    {field:2, type:'string', value:m.title},
+    {field:3, type:'string', value:m.content_hash},
+    {field:4, type:'string', value:m.license_terms},
+    {field:5, type:'varint', value:m.price_ufrg},
+    {field:6, type:'string', value:m.content_type},
+    {field:7, type:'string', value:m.description},
+  ]);
+}
+function encodePurchaseLicense(m) {
+  return protoEncode([
+    {field:1, type:'bytes',  value:m.buyer_address},
+    {field:2, type:'varint', value:m.content_id},
+    {field:3, type:'varint', value:m.amount_ufrg},
+  ]);
+}
+function encodeTipCreator(m) {
+  return protoEncode([
+    {field:1, type:'bytes',  value:m.sender_address},
+    {field:2, type:'bytes',  value:m.creator_address},
+    {field:3, type:'varint', value:m.amount_ufrg},
+    {field:4, type:'string', value:m.message},
+  ]);
+}
+function encodeSend(m) {
+  return protoEncode([
+    {field:1, type:'bytes',  value:m.from_address},
+    {field:2, type:'bytes',  value:m.to_address},
+    {field:3, type:'varint', value:m.amount},
+  ]);
+}
+
+// Build sign bytes — outer Transaction proto, signature field nil
+function buildSignBytes({type, msgTypeUrl, msgBytes, msg, fee, time}, pubKey) {
+  const txTime = typeof time === 'bigint' ? time : BigInt(time);
+  const fields = [{field:1, type:'string', value:type}];
+  if (msgTypeUrl) {
+    fields.push({field:2, type:'string', value:msgTypeUrl});
+    fields.push({field:3, type:'bytes',  value:msgBytes});
+  } else {
+    fields.push({field:2, type:'bytes', value:msg});
+  }
+  fields.push(
+    {field:4, type:'varint', value:fee},
+    {field:5, type:'varint', value:Number(txTime)},
+    {field:6, type:'bytes',  value:pubKey},
+    // field 7 memo omitted (proto3: empty string is default, skip)
+  );
+  return protoEncode(fields);
+}
+
+// ═══════════════════════════════════════════════════════
+//  UTILITIES
+// ═══════════════════════════════════════════════════════
+function bytesToHex(bytes) {
+  if (!bytes) return '';
+  return Array.from(bytes).map(b => b.toString(16).padStart(2,'0')).join('');
+}
+function hexToBytes(hex) {
+  const s = hex.startsWith('0x') ? hex.slice(2) : hex;
+  const a = new Uint8Array(s.length / 2);
+  for (let i = 0; i < a.length; i++) a[i] = parseInt(s.slice(i*2, i*2+2), 16);
+  return a;
+}
+function bytesToBase64(bytes) { return btoa(String.fromCharCode(...bytes)); }
+function fmtFRG(ufrg) {
+  const n = ufrg / 1_000_000;
+  return n % 1 === 0 ? n.toString() : n.toFixed(6).replace(/\.?0+$/, '');
+}
+function shortAddr(hex) {
+  if (!hex || hex.length < 12) return hex || '—';
+  return hex.slice(0,6) + '…' + hex.slice(-4);
+}
+function typeIcon(t) {
+  return {article:'✍', image:'🖼', audio:'♪', video:'▶', dataset:'⊞', other:'✦'}[t] || '✦';
+}
+function esc(s) {
+  return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ═══════════════════════════════════════════════════════
+//  MODAL HELPERS
+// ═══════════════════════════════════════════════════════
+function openModal(id)  { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+document.querySelectorAll('.modal-backdrop').forEach(el => {
+  el.addEventListener('click', e => { if (e.target === el) el.classList.remove('open'); });
+});
+
+// ═══════════════════════════════════════════════════════
+//  TOAST
+// ═══════════════════════════════════════════════════════
+function toast(msg, type='info') {
+  const el = document.createElement('div');
+  el.className = `toast ${type}`;
+  el.textContent = msg;
+  document.getElementById('toasts').appendChild(el);
+  setTimeout(() => el.remove(), 4000);
+}
+
+// ═══════════════════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════════════════
+navigate('discover');
+</script>
+</body>
+</html>
