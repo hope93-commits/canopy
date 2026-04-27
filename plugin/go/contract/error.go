@@ -113,3 +113,5 @@ func ErrSupplyExhausted() *PluginError {
 func ErrAlreadyLicensed() *PluginError {
 	return newErr(codeAlreadyLicensed, "buyer already holds a license for this content")
 }
+
+func (e *PluginError) Error() string { return e.Msg }

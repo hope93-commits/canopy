@@ -687,3 +687,13 @@ func validLicense(l string) bool {
 func uint64Str(v uint64) string {
 	return fmt.Sprintf("%d", v)
 }
+
+// StateRead is a package-level helper so contract methods can call StateRead(c, req)
+func StateRead(c *Contract, req *PluginStateReadRequest) (*PluginStateReadResponse, *PluginError) {
+return c.plugin.StateRead(c, req)
+}
+
+// StateWrite is a package-level helper so contract methods can call StateWrite(c, req)
+func StateWrite(c *Contract, req *PluginStateWriteRequest) (*PluginStateWriteResponse, *PluginError) {
+return c.plugin.StateWrite(c, req)
+}

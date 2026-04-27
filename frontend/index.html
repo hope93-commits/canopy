@@ -653,7 +653,7 @@ async function submitPublish() {
       type: 'publish_content',
       msgTypeUrl: 'type.googleapis.com/types.MessagePublishContent',
       msgBytes, fee: 10000, time: txTime
-    }, wallet.pubKey);
+    });
 
     status.textContent = 'Signing with BLS12-381…';
     const sig = await b.sign(signBytes, wallet.privKey);
@@ -799,11 +799,12 @@ async function submitSend() {
     const txTime = BigInt(Date.now() * 1000);
     const toBytes = hexToBytes(to);
     const msgBytes = encodeSend({ from_address: wallet.pubKey, to_address: toBytes, amount: amtUfrg });
-    const signBytes = buildSignBytes({ type: 'send', msg: msgBytes, fee: 10000, time: txTime }, wallet.pubKey);
+    const signBytes = buildSignBytes({ type: 'send', msgTypeUrl: 'type.googleapis.com/types.MessageSend', msgBytes, fee: 10000, time: txTime });
     const sig = await b.sign(signBytes, wallet.privKey);
     const body = {
       type: 'send',
-      msg: { '@type': 'type.googleapis.com/types.MessageSend', value: bytesToBase64(msgBytes) },
+      msgTypeUrl: 'type.googleapis.com/types.MessageSend',
+      msgBytes: bytesToHex(msgBytes),
       fee: 10000, time: Number(txTime), memo: '',
       signature: { publicKey: bytesToHex(wallet.pubKey), signature: bytesToHex(sig) }
     };
@@ -874,7 +875,7 @@ async function purchaseLicense(contentId) {
     const b = await loadBLS();
     const txTime = BigInt(Date.now() * 1000);
     const msgBytes = encodePurchaseLicense({ buyer_address: wallet.pubKey, content_id: contentId, amount_ufrg: c.price_ufrg });
-    const signBytes = buildSignBytes({ type: 'purchase_license', msgTypeUrl: 'type.googleapis.com/types.MessagePurchaseLicense', msgBytes, fee: 10000, time: txTime }, wallet.pubKey);
+    const signBytes = buildSignBytes({ type: 'purchase_license', msgTypeUrl: 'type.googleapis.com/types.MessagePurchaseLicense', msgBytes, fee: 10000, time: txTime });
     const sig = await b.sign(signBytes, wallet.privKey);
     const body = { type: 'purchase_license', msgTypeUrl: 'type.googleapis.com/types.MessagePurchaseLicense', msgBytes: bytesToHex(msgBytes), fee: 10000, time: Number(txTime), memo: '', signature: { publicKey: bytesToHex(wallet.pubKey), signature: bytesToHex(sig) } };
     const res = await fetch(`${RPC}/v1/txs`, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) });
@@ -925,7 +926,7 @@ async function submitTip(creatorHex) {
     const txTime = BigInt(Date.now() * 1000);
     const creatorBytes = hexToBytes(creatorHex);
     const msgBytes = encodeTipCreator({ sender_address: wallet.pubKey, creator_address: creatorBytes, amount_ufrg: amtUfrg, message: msg });
-    const signBytes = buildSignBytes({ type: 'tip_creator', msgTypeUrl: 'type.googleapis.com/types.MessageTipCreator', msgBytes, fee: 10000, time: txTime }, wallet.pubKey);
+    const signBytes = buildSignBytes({ type: 'tip_creator', msgTypeUrl: 'type.googleapis.com/types.MessageTipCreator', msgBytes, fee: 10000, time: txTime });
     const sig = await b.sign(signBytes, wallet.privKey);
     const body = { type: 'tip_creator', msgTypeUrl: 'type.googleapis.com/types.MessageTipCreator', msgBytes: bytesToHex(msgBytes), fee: 10000, time: Number(txTime), memo: '', signature: { publicKey: bytesToHex(wallet.pubKey), signature: bytesToHex(sig) } };
     const res = await fetch(`${RPC}/v1/txs`, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) });
@@ -1086,23 +1087,29 @@ function encodeSend(m) {
   ]);
 }
 
-// Build sign bytes — outer Transaction proto, signature field nil
-function buildSignBytes({type, msgTypeUrl, msgBytes, msg, fee, time}, pubKey) {
+// Build sign bytes — matches GetSignBytes() in tutorial/crypto/signing.go exactly
+// Any proto: field1=type_url(string), field2=value(bytes)
+function encodeAny(typeUrl, valueBytes) {
+  return protoEncode([
+    {field:1, type:'string', value:typeUrl},
+    {field:2, type:'bytes',  value:valueBytes},
+  ]);
+}
+function buildSignBytes({type, msgTypeUrl, msgBytes, fee, time, createdHeight, networkID, chainID}) {
   const txTime = typeof time === 'bigint' ? time : BigInt(time);
-  const fields = [{field:1, type:'string', value:type}];
-  if (msgTypeUrl) {
-    fields.push({field:2, type:'string', value:msgTypeUrl});
-    fields.push({field:3, type:'bytes',  value:msgBytes});
-  } else {
-    fields.push({field:2, type:'bytes', value:msg});
-  }
-  fields.push(
-    {field:4, type:'varint', value:fee},
+  const height = createdHeight || 0;
+  const netID  = networkID || 1;
+  const cID    = chainID   || 1;
+  const anyBytes = encodeAny(msgTypeUrl, msgBytes);
+  return protoEncode([
+    {field:1, type:'string', value:type},
+    {field:2, type:'bytes',  value:anyBytes},
+    {field:4, type:'varint', value:height},
     {field:5, type:'varint', value:Number(txTime)},
-    {field:6, type:'bytes',  value:pubKey},
-    // field 7 memo omitted (proto3: empty string is default, skip)
-  );
-  return protoEncode(fields);
+    {field:6, type:'varint', value:fee},
+    {field:8, type:'varint', value:netID},
+    {field:9, type:'varint', value:cID},
+  ]);
 }
 
 // ═══════════════════════════════════════════════════════
