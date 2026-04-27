@@ -1,16 +1,10 @@
 {
-  "chainId": 1,
-  "name": "canopy",
-  "symbol": "CNPY",
-  "website": "https://canopynetwork.org",
-  "logoURI": "https://",
-  "bannerURI": "https://",
-  "explorerLogoURI": "https://",
-  "walletLogoURI": "https://",
-  "color1Hex": "#2c9b5a",
-  "color2Hex": "#16502e",
-  "description": "Canopy is a recursive, progressive-sovereignty framework for blockchains",
-  "consensusPreset": 1,
-  "initialMintPerBlock": 80000000,
-  "blocksPerHalvening": 3150000
+  "name": "ForgeCast",
+  "symbol": "FRG",
+  "chainId": 2,
+  "networkId": 2,
+  "description": "Sovereign content chain on Canopy Network. Creators publish work, prove ownership, set license terms, and collect payment — all on-chain, no platform cut.",
+  "website": "https://github.com/hope93-commits/canopy",
+  "feePerByte": 1,
+  "minFee": 10000
 }
