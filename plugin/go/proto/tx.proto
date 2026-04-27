@@ -1,33 +1,72 @@
 syntax = "proto3";
-
 package types;
-
 option go_package = "github.com/hope93-commits/canopy/plugin/go/contract";
 
-// MessagePublishContent: creator publishes a piece of work on-chain
+import "google/protobuf/any.proto";
+
+// ─── built-in types ───────────────────────────────────────────────────
+
+message Transaction {
+  string message_type  = 1;
+  google.protobuf.Any msg = 2;
+  Signature signature  = 3;
+  uint64 created_height = 4;
+  uint64 time           = 5;
+  uint64 fee            = 6;
+  string memo           = 7;
+  uint64 network_id     = 8;
+  uint64 chain_id       = 9;
+}
+
+message Signature {
+  bytes public_key = 1;
+  bytes signature  = 2;
+}
+
+message Account {
+  bytes  address      = 1;
+  uint64 amount       = 2;
+  uint64 staked_amount = 3;
+}
+
+message Pool {
+  uint64 id     = 1;
+  uint64 amount = 2;
+}
+
+message FeeParams {
+  uint64 send_fee = 1;
+}
+
+message MessageSend {
+  bytes  from_address = 1;
+  bytes  to_address   = 2;
+  uint64 amount       = 3;
+}
+
+// ─── ForgeCast custom messages ────────────────────────────────────────
+
 message MessagePublishContent {
-  bytes  creator_address = 1 [json_name="creatorAddress", (gogoproto.jsontag) = "creatorAddress,omitempty"];
-  string title           = 2 [json_name="title"];
-  string content_hash    = 3 [json_name="contentHash"];   // IPFS CID or sha256
-  string license_terms   = 4 [json_name="licenseTerms"];
-  uint64 price_ufrg      = 5 [json_name="priceUfrg"];     // price in micro-FRG (0 = free)
-  string content_type    = 6 [json_name="contentType"];   // article|image|audio|video|dataset|other
-  string description     = 7 [json_name="description"];
+  bytes  creator      = 1;  // 20-byte creator address
+  string content_hash = 2;  // hash of the content (e.g. SHA-256 hex)
+  string title        = 3;
+  string content_type = 4;  // article | music | art | video | code | research
+  string license      = 5;  // free | payPerView | commercial | collectible
+  uint64 price        = 6;  // 0 for free content
+  uint64 max_supply   = 7;  // 0 = unlimited
 }
 
-// MessagePurchaseLicense: buyer pays creator and records a license on-chain
 message MessagePurchaseLicense {
-  bytes  buyer_address = 1 [json_name="buyerAddress"];
-  uint64 content_id    = 2 [json_name="contentId"];
-  uint64 amount_ufrg   = 3 [json_name="amountUfrg"];
+  bytes  buyer      = 1;   // 20-byte buyer address
+  uint64 content_id = 2;
+  bytes  creator    = 3;   // 20-byte creator address (for earnings routing)
 }
 
-// MessageTipCreator: send a direct FRG tip to any creator
 message MessageTipCreator {
-  bytes  sender_address  = 1 [json_name="senderAddress"];
-  bytes  creator_address = 2 [json_name="creatorAddress"];
-  uint64 amount_ufrg     = 3 [json_name="amountUfrg"];
-  string message         = 4 [json_name="message"];
+  bytes  tipper  = 1;  // 20-byte tipper address
+  bytes  creator = 2;  // 20-byte creator address
+  uint64 amount  = 3;
+  string message = 4;  // optional note
 }
 
 
