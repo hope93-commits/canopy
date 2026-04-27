@@ -1,75 +1,35 @@
-# ForgeCast ($FRG)
+# ForgeCast — The Creator Economy, Rebuilt On-Chain
 
-> The Creator Economy, Rebuilt on Canopy.
+A sovereign content chain built on Canopy Network. Creators publish work, prove ownership, and get paid directly — no platform takes a cut.
 
-ForgeCast is a sovereign content chain on the [Canopy Network](https://canopynetwork.org). Creators publish work on-chain with automatic timestamp and authorship proof, set their own license terms, and collect $FRG payments directly from their audience — no platform, no algorithm, no cut.
+## What It Does
 
-## What it does
+ForgeCast is a Canopy Nested Chain with 4 custom transaction types:
 
-| Feature | Description |
-|---|---|
-| **On-chain publishing** | Every piece of content is timestamped at the block it was submitted. Authorship is cryptographically proven. |
-| **Custom licensing** | Creators define their own license terms. Terms are immutable once published. |
-| **Direct payments** | Buyers pay creators in $FRG. No intermediary. No fee skimmed. |
-| **Tipping** | Anyone can send a direct $FRG tip to any creator, with an optional on-chain message. |
-| **License registry** | Purchased licenses are recorded on-chain and verifiable by anyone. |
+- **publish_content** — publish a content record on-chain with title, hash, license terms, and price
+- **purchase_license** — buy a license for another creator's content
+- **tip_creator** — send a direct tip to any creator address
+- **send** — transfer $FRG tokens between accounts
 
-## Transaction types
+## Stack
 
-- `publish_content` — publish a new work with title, content hash, license, price, type, description
-- `purchase_license` — pay the creator and record a license on-chain
-- `tip_creator` — send a direct $FRG tip
-- `send` — standard $FRG transfer
+- Canopy Network (Go plugin, BLS12-381 signing, NestBFT consensus)
+- Single-file HTML frontend (vanilla JS, @noble/curves BLS)
+- Native token: $FRG
 
-## Content types supported
-
-`article` · `image` · `audio` · `video` · `dataset` · `other`
-
-## Running locally
+## Run Locally
 
 ```bash
-# 1. Fix module paths (after cloning)
-sed -i 's|github.com/hope93-commits/canopy/plugin/go|github.com/hope93-commits/canopy/plugin/go|g' go.mod
-sed -i 's|github.com/hope93-commits/canopy/plugin/go|github.com/hope93-commits/canopy/plugin/go|g' proto/*.proto
-sed -i 's|github.com/hope93-commits/canopy/plugin/go|github.com/hope93-commits/canopy/plugin/go|g' proto/_generate.sh
+# 1. Start the chain
+canopy start
 
-# 2. Regenerate proto types
-cd proto && ./_generate.sh && cd ..
+# 2. Serve the frontend
+cd frontend && python3 -m http.server 8080
 
-# 3. Build the plugin
-GOTOOLCHAIN=local go build -o go-plugin .
+# 3. Open http://localhost:8080
 
-# 4. Start the node (from canopy root)
-canopy start --data-dir ~/.canopy-forgecast --rpc-port 50002 --admin-port 50003
-
-# 5. Open the frontend
-open frontend/index.html
-```
-
-## Repo structure
-
-```
-plugin/go/
-├── main.go              ← DO NOT TOUCH
-├── chain.json           ← chain identity
-├── AGENTS.md            ← AI assistant context
-├── README.md
-├── contract/
-│   ├── plugin.go        ← DO NOT TOUCH
-│   ├── contract.go      ← application logic
-│   ├── error.go         ← custom error codes
-│   └── tx.pb.go         ← generated from tx.proto
-└── proto/
-    ├── tx.proto         ← message definitions
-    ├── account.proto    ← DO NOT TOUCH
-    └── plugin.proto     ← DO NOT TOUCH
-
-frontend/
-└── index.html           ← single-file dApp
-```
-
-## Philosophy
-
-> No algorithms. No gatekeepers. Just creators and their audience.
-
-Built on [Canopy Network](https://canopynetwork.org) Betanet · BLS12-381 · $FRG
+Key Files
+plugin/go/contract/contract.go — all 4 transaction types
+plugin/go/proto/tx.proto — message definitions
+frontend/index.html — complete frontend
+plugin/go/chain.json — chain metadata
