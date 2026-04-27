@@ -644,7 +644,7 @@ async function submitPublish() {
     const txTime = BigInt(Date.now() * 1000);
 
     const msgBytes = encodePublishContent({
-      creator_address: wallet.pubKey,
+      creator_address: wallet.address,
       title, content_hash: hash, license_terms: license,
       price_ufrg: priceUfrg, content_type: type, description: desc
     });
@@ -697,7 +697,7 @@ function renderWalletPage(el) {
       </div>`;
     return;
   }
-  const addr = bytesToHex(wallet.pubKey);
+  const addr = bytesToHex(wallet.address);
   el.innerHTML = `
     <div class="wallet-panel">
       <div class="wallet-avatar">${addr.slice(0,1).toUpperCase()}</div>
@@ -738,7 +738,7 @@ function showTab(name) {
   if (!panel) return;
 
   if (name === 'my-content') {
-    const addr = bytesToHex(wallet.pubKey);
+    const addr = bytesToHex(wallet.address);
     const mine = contents.filter(c => bytesToHex(c.creator_address || []) === addr);
     if (!mine.length) {
       panel.innerHTML = `<div class="empty"><div class="empty-icon">✦</div><div class="empty-title">No published content yet</div><p class="empty-sub" style="margin-top:14px"><button class="btn btn-primary btn-sm" onclick="navigate('publish')">Publish your first work</button></p></div>`;
@@ -798,7 +798,7 @@ async function submitSend() {
     const b = await loadBLS();
     const txTime = BigInt(Date.now() * 1000);
     const toBytes = hexToBytes(to);
-    const msgBytes = encodeSend({ from_address: wallet.pubKey, to_address: toBytes, amount: amtUfrg });
+    const msgBytes = encodeSend({ from_address: wallet.address, to_address: toBytes, amount: amtUfrg });
     const signBytes = buildSignBytes({ type: 'send', msgTypeUrl: 'type.googleapis.com/types.MessageSend', msgBytes, fee: 10000, time: txTime });
     const sig = await b.sign(signBytes, wallet.privKey);
     const body = {
@@ -813,7 +813,7 @@ async function submitSend() {
     if (!res.ok || data.error) throw new Error(data.error || 'Send failed');
     toast('Sent! ✦', 'success');
     btn.disabled = false; btn.innerHTML = 'Send $FRG';
-    loadBalance(bytesToHex(wallet.pubKey));
+    loadBalance(bytesToHex(wallet.address));
   } catch(e) {
     toast(e.message || 'Send failed', 'error');
     btn.disabled = false; btn.innerHTML = 'Send $FRG';
@@ -827,7 +827,7 @@ function openDetail(id) {
   const c = contents.find(x => x.id === id);
   if (!c) return;
   const licensed = myLicenses.has(id);
-  const isMine = wallet && bytesToHex(wallet.pubKey) === bytesToHex(c.creator_address || []);
+  const isMine = wallet && bytesToHex(wallet.address) === bytesToHex(c.creator_address || []);
   const creator = bytesToHex(c.creator_address || []);
 
   document.getElementById('dm-title').textContent = c.title;
@@ -874,7 +874,7 @@ async function purchaseLicense(contentId) {
   try {
     const b = await loadBLS();
     const txTime = BigInt(Date.now() * 1000);
-    const msgBytes = encodePurchaseLicense({ buyer_address: wallet.pubKey, content_id: contentId, amount_ufrg: c.price_ufrg });
+    const msgBytes = encodePurchaseLicense({ buyer_address: wallet.address, content_id: contentId, amount_ufrg: c.price_ufrg });
     const signBytes = buildSignBytes({ type: 'purchase_license', msgTypeUrl: 'type.googleapis.com/types.MessagePurchaseLicense', msgBytes, fee: 10000, time: txTime });
     const sig = await b.sign(signBytes, wallet.privKey);
     const body = { type: 'purchase_license', msgTypeUrl: 'type.googleapis.com/types.MessagePurchaseLicense', msgBytes: bytesToHex(msgBytes), fee: 10000, time: Number(txTime), memo: '', signature: { publicKey: bytesToHex(wallet.pubKey), signature: bytesToHex(sig) } };
@@ -925,7 +925,7 @@ async function submitTip(creatorHex) {
     const b = await loadBLS();
     const txTime = BigInt(Date.now() * 1000);
     const creatorBytes = hexToBytes(creatorHex);
-    const msgBytes = encodeTipCreator({ sender_address: wallet.pubKey, creator_address: creatorBytes, amount_ufrg: amtUfrg, message: msg });
+    const msgBytes = encodeTipCreator({ sender_address: wallet.address, creator_address: creatorBytes, amount_ufrg: amtUfrg, message: msg });
     const signBytes = buildSignBytes({ type: 'tip_creator', msgTypeUrl: 'type.googleapis.com/types.MessageTipCreator', msgBytes, fee: 10000, time: txTime });
     const sig = await b.sign(signBytes, wallet.privKey);
     const body = { type: 'tip_creator', msgTypeUrl: 'type.googleapis.com/types.MessageTipCreator', msgBytes: bytesToHex(msgBytes), fee: 10000, time: Number(txTime), memo: '', signature: { publicKey: bytesToHex(wallet.pubKey), signature: bytesToHex(sig) } };
@@ -963,7 +963,7 @@ function renderWalletConnect() {
 }
 function renderWalletConnected() {
   document.getElementById('wm-title').textContent = 'Wallet Connected';
-  const addr = bytesToHex(wallet.pubKey);
+  const addr = bytesToHex(wallet.address);
   document.getElementById('wm-body').innerHTML = `
     <div class="key-display">${addr}</div>
     <div class="warning-box">⚠ Save your private key — this wallet lives in memory only.</div>
@@ -976,11 +976,17 @@ function renderWalletConnected() {
       <button class="btn btn-secondary" onclick="disconnectWallet()">Disconnect</button>
     </div>`;
 }
+// Derive Canopy address: SHA256(pubKeyBytes).slice(0,20)
+async function pubKeyToAddress(pubKeyBytes) {
+  const hashBuf = await crypto.subtle.digest('SHA-256', pubKeyBytes);
+  return new Uint8Array(hashBuf).slice(0, 20);
+}
 async function generateWallet() {
   const b = await loadBLS();
   const privKey = b.utils.randomPrivateKey();
   const pubKey  = await b.getPublicKey(privKey);
-  setWallet(privKey, pubKey);
+  const address = await pubKeyToAddress(pubKey);
+  setWallet(privKey, pubKey, address);
   closeModal('wallet-modal');
   toast('New wallet created! Save your private key.', 'success');
   renderView();
@@ -992,15 +998,16 @@ async function importWallet() {
     const b = await loadBLS();
     const privKey = hexToBytes(hex);
     const pubKey  = await b.getPublicKey(privKey);
-    setWallet(privKey, pubKey);
+    const address = await pubKeyToAddress(pubKey);
+    setWallet(privKey, pubKey, address);
     closeModal('wallet-modal');
     toast('Wallet imported!', 'success');
     renderView();
   } catch { toast('Invalid private key', 'error'); }
 }
-function setWallet(privKey, pubKey) {
-  wallet = { privKey, pubKey };
-  const addr = bytesToHex(pubKey);
+function setWallet(privKey, pubKey, address) {
+  wallet = { privKey, pubKey, address };
+  const addr = bytesToHex(address);
   document.getElementById('wallet-display').textContent = shortAddr(addr);
   const btn = document.getElementById('connect-btn');
   btn.textContent = 'Wallet ↗';
