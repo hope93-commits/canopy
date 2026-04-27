@@ -12,8 +12,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/canopy-network/go-plugin/tutorial/contract"
-	"github.com/canopy-network/go-plugin/tutorial/crypto"
+	"github.com/hope93-commits/canopy/plugin/go/tutorial/contract"
+	"github.com/hope93-commits/canopy/plugin/go/tutorial/crypto"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"
 )

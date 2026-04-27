@@ -1,4 +1,4 @@
-module github.com/canopy-network/go-plugin/tutorial
+module github.com/hope93-commits/canopy/plugin/go/tutorial
 
 go 1.25
 

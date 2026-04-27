@@ -219,7 +219,7 @@ const file_event_proto_rawDesc = "" +
 	"\aaddress\x18` \x01(\fR\aaddressB\x05\n" +
 	"\x03msg\"5\n" +
 	"\vEventCustom\x12&\n" +
-	"\x03msg\x18\x01 \x01(\v2\x14.google.protobuf.AnyR\x03msgB3Z1github.com/canopy-network/go-plugin-test/contractb\x06proto3"
+	"\x03msg\x18\x01 \x01(\v2\x14.google.protobuf.AnyR\x03msgB3Z1github.com/hope93-commits/canopy/plugin/go-test/contractb\x06proto3"
 
 var (
 	file_event_proto_rawDescOnce sync.Once

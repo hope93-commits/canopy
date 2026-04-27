@@ -29,9 +29,9 @@ ForgeCast is a sovereign content chain on the [Canopy Network](https://canopynet
 
 ```bash
 # 1. Fix module paths (after cloning)
-sed -i 's|github.com/canopy-network/go-plugin|github.com/hope93-commits/canopy/plugin/go|g' go.mod
-sed -i 's|github.com/canopy-network/go-plugin|github.com/hope93-commits/canopy/plugin/go|g' proto/*.proto
-sed -i 's|github.com/canopy-network/go-plugin|github.com/hope93-commits/canopy/plugin/go|g' proto/_generate.sh
+sed -i 's|github.com/hope93-commits/canopy/plugin/go|github.com/hope93-commits/canopy/plugin/go|g' go.mod
+sed -i 's|github.com/hope93-commits/canopy/plugin/go|github.com/hope93-commits/canopy/plugin/go|g' proto/*.proto
+sed -i 's|github.com/hope93-commits/canopy/plugin/go|github.com/hope93-commits/canopy/plugin/go|g' proto/_generate.sh
 
 # 2. Regenerate proto types
 cd proto && ./_generate.sh && cd ..

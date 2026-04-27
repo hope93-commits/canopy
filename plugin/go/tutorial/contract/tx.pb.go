@@ -471,7 +471,7 @@ const file_tx_proto_rawDesc = "" +
 	"\rMessageFaucet\x12%\n" +
 	"\x0esigner_address\x18\x01 \x01(\fR\rsignerAddress\x12+\n" +
 	"\x11recipient_address\x18\x02 \x01(\fR\x10recipientAddress\x12\x16\n" +
-	"\x06amount\x18\x03 \x01(\x04R\x06amountB3Z1github.com/canopy-network/go-plugin-test/contractb\x06proto3"
+	"\x06amount\x18\x03 \x01(\x04R\x06amountB3Z1github.com/hope93-commits/canopy/plugin/go-test/contractb\x06proto3"
 
 var (
 	file_tx_proto_rawDescOnce sync.Once

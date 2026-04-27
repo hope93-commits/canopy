@@ -1792,7 +1792,7 @@ const file_plugin_proto_rawDesc = "" +
 	"\x03key\x18\x01 \x01(\fR\x03key\":\n" +
 	"\x10PluginStateEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\fR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\fR\x05valueB3Z1github.com/canopy-network/go-plugin-test/contractb\x06proto3"
+	"\x05value\x18\x02 \x01(\fR\x05valueB3Z1github.com/hope93-commits/canopy/plugin/go-test/contractb\x06proto3"
 
 var (
 	file_plugin_proto_rawDescOnce sync.Once
