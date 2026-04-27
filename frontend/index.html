@@ -656,13 +656,13 @@ async function submitPublish() {
     });
 
     status.textContent = 'Signing with BLS12-381…';
-    const sigBytes = await b.sign(signBytes, wallet.privKey, {DST: "BLS_SIG_BLS12381G2_XMD:SHA-256_SSWU_RO_NUL_"});
+    const sigBytes = await b.sign(signBytes, wallet.privKey);
 
     status.textContent = 'Broadcasting…';
     const body = {
       type: 'publish_content',
       msgTypeUrl: 'type.googleapis.com/types.MessagePublishContent',
-      msgBytes: bytesToBase64(msgBytes),
+      msgBytes: bytesToHex(msgBytes),
       fee: 10000,
       time: Number(txTime),
       memo: '',
@@ -803,11 +803,11 @@ async function submitSend() {
     const toBytes = hexToBytes(to);
     const msgBytes = encodeSend({ from_address: wallet.address, to_address: toBytes, amount: amtUfrg });
     const signBytes = buildSignBytes({ type: 'send', msgTypeUrl: 'type.googleapis.com/types.MessageSend', msgBytes, fee: 10000, time: txTime });
-    const sigBytes = await b.sign(signBytes, wallet.privKey, {DST: "BLS_SIG_BLS12381G2_XMD:SHA-256_SSWU_RO_NUL_"});
+    const sigBytes = await b.sign(signBytes, wallet.privKey);
     const body = {
       type: 'send',
       msgTypeUrl: 'type.googleapis.com/types.MessageSend',
-      msgBytes: bytesToBase64(msgBytes),
+      msgBytes: bytesToHex(msgBytes),
       fee: 10000, time: Number(txTime), memo: '',
       signature: { publicKey: bytesToHex(wallet.pubKey), signature: bytesToHex(sigBytes) }
     };
@@ -879,8 +879,8 @@ async function purchaseLicense(contentId) {
     const txTime = BigInt(Date.now() * 1000);
     const msgBytes = encodePurchaseLicense({ buyer_address: wallet.address, content_id: contentId, amount_ufrg: c.price_ufrg });
     const signBytes = buildSignBytes({ type: 'purchase_license', msgTypeUrl: 'type.googleapis.com/types.MessagePurchaseLicense', msgBytes, fee: 10000, time: txTime });
-    const sigBytes = await b.sign(signBytes, wallet.privKey, {DST: "BLS_SIG_BLS12381G2_XMD:SHA-256_SSWU_RO_NUL_"});
-    const body = { type: 'purchase_license', msgTypeUrl: 'type.googleapis.com/types.MessagePurchaseLicense', msgBytes: bytesToBase64(msgBytes), fee: 10000, time: Number(txTime), memo: '', signature: { publicKey: bytesToHex(wallet.pubKey), signature: bytesToHex(sigBytes) } };
+    const sigBytes = await b.sign(signBytes, wallet.privKey);
+    const body = { type: 'purchase_license', msgTypeUrl: 'type.googleapis.com/types.MessagePurchaseLicense', msgBytes: bytesToHex(msgBytes), fee: 10000, time: Number(txTime), memo: '', signature: { publicKey: bytesToHex(wallet.pubKey), signature: bytesToHex(sigBytes) } };
     const res = await fetch(`${RPC}/v1/txs`, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) });
     const data = await res.json();
     if (!res.ok || data.error) throw new Error(data.error || 'Purchase failed');
@@ -930,8 +930,8 @@ async function submitTip(creatorHex) {
     const creatorBytes = hexToBytes(creatorHex);
     const msgBytes = encodeTipCreator({ sender_address: wallet.address, creator_address: creatorBytes, amount_ufrg: amtUfrg, message: msg });
     const signBytes = buildSignBytes({ type: 'tip_creator', msgTypeUrl: 'type.googleapis.com/types.MessageTipCreator', msgBytes, fee: 10000, time: txTime });
-    const sigBytes = await b.sign(signBytes, wallet.privKey, {DST: "BLS_SIG_BLS12381G2_XMD:SHA-256_SSWU_RO_NUL_"});
-    const body = { type: 'tip_creator', msgTypeUrl: 'type.googleapis.com/types.MessageTipCreator', msgBytes: bytesToBase64(msgBytes), fee: 10000, time: Number(txTime), memo: '', signature: { publicKey: bytesToHex(wallet.pubKey), signature: bytesToHex(sigBytes) } };
+    const sigBytes = await b.sign(signBytes, wallet.privKey);
+    const body = { type: 'tip_creator', msgTypeUrl: 'type.googleapis.com/types.MessageTipCreator', msgBytes: bytesToHex(msgBytes), fee: 10000, time: Number(txTime), memo: '', signature: { publicKey: bytesToHex(wallet.pubKey), signature: bytesToHex(sigBytes) } };
     const res = await fetch(`${RPC}/v1/txs`, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) });
     const data = await res.json();
     if (!res.ok || data.error) throw new Error(data.error || 'Tip failed');
