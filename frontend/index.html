@@ -504,7 +504,7 @@ async function renderDiscover(el) {
 
 async function checkNode() {
   try {
-    const r = await fetch(`${RPC}/v1/query/height`, {signal: AbortSignal.timeout(3000)});
+    const r = await fetch(`${RPC}/v1/query/height`, {method:"POST",headers:{"Content-Type":"application/json"},body:"{}",signal: AbortSignal.timeout(3000)});
     const d = await r.json();
     const el = document.getElementById('stat-node');
     if (el) { el.textContent = `Block ${d.height ?? '?'}`; el.style.color = 'var(--green)'; }
@@ -516,7 +516,7 @@ async function checkNode() {
 
 async function loadContents() {
   try {
-    const r = await fetch(`${RPC}/v1/query/state?prefix=0110&page=1&perPage=50`);
+    const r = await fetch(`${RPC}/v1/query/state`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({prefix:"0110",page:1,perPage:50})});
     const d = await r.json();
     contents = (d.results || []).map(x => {
       try { return JSON.parse(atob(x.value)); } catch { return null; }
@@ -723,7 +723,7 @@ function renderWalletPage(el) {
 
 async function loadBalance(addr) {
   try {
-    const r = await fetch(`${RPC}/v1/query/account?address=${addr}`);
+    const r = await fetch(`${RPC}/v1/query/account`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({address:addr})});
     const d = await r.json();
     const el = document.getElementById('wp-balance');
     if (el) el.textContent = fmtFRG(d.amount || 0) + ' $FRG';
