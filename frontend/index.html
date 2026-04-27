@@ -670,7 +670,7 @@ async function submitPublish() {
     };
 
     console.log('TX BODY:', JSON.stringify(body, null, 2));
-    const res = await fetch(`${RPC}/v1/txs`, {
+    const res = await fetch(`${RPC}/v1/tx`, {
       method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body)
     });
     const rawText = await res.text();
@@ -811,7 +811,7 @@ async function submitSend() {
       fee: 10000, time: Number(txTime), memo: '',
       signature: { publicKey: bytesToHex(wallet.pubKey), signature: bytesToHex(sigBytes) }
     };
-    const res = await fetch(`${RPC}/v1/txs`, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) });
+    const res = await fetch(`${RPC}/v1/tx`, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) });
     const data = await res.json();
     if (!res.ok || data.error) throw new Error(data.error || 'Send failed');
     toast('Sent! ✦', 'success');
@@ -881,7 +881,7 @@ async function purchaseLicense(contentId) {
     const signBytes = buildSignBytes({ type: 'purchase_license', msgTypeUrl: 'type.googleapis.com/types.MessagePurchaseLicense', msgBytes, fee: 10000, time: txTime });
     const sigBytes = await b.sign(signBytes, wallet.privKey);
     const body = { type: 'purchase_license', msgTypeUrl: 'type.googleapis.com/types.MessagePurchaseLicense', msgBytes: bytesToHex(msgBytes), fee: 10000, time: Number(txTime), memo: '', signature: { publicKey: bytesToHex(wallet.pubKey), signature: bytesToHex(sigBytes) } };
-    const res = await fetch(`${RPC}/v1/txs`, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) });
+    const res = await fetch(`${RPC}/v1/tx`, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) });
     const data = await res.json();
     if (!res.ok || data.error) throw new Error(data.error || 'Purchase failed');
     myLicenses.add(contentId);
@@ -932,7 +932,7 @@ async function submitTip(creatorHex) {
     const signBytes = buildSignBytes({ type: 'tip_creator', msgTypeUrl: 'type.googleapis.com/types.MessageTipCreator', msgBytes, fee: 10000, time: txTime });
     const sigBytes = await b.sign(signBytes, wallet.privKey);
     const body = { type: 'tip_creator', msgTypeUrl: 'type.googleapis.com/types.MessageTipCreator', msgBytes: bytesToHex(msgBytes), fee: 10000, time: Number(txTime), memo: '', signature: { publicKey: bytesToHex(wallet.pubKey), signature: bytesToHex(sigBytes) } };
-    const res = await fetch(`${RPC}/v1/txs`, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) });
+    const res = await fetch(`${RPC}/v1/tx`, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) });
     const data = await res.json();
     if (!res.ok || data.error) throw new Error(data.error || 'Tip failed');
     toast('Tip sent! ✦', 'success');
