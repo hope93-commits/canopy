@@ -3,289 +3,502 @@ package contract
 import (
 	"bytes"
 	"encoding/binary"
-	"log"
-	"math/rand"
+	"encoding/json"
+	"fmt"
+	"strings"
 
 	"google.golang.org/protobuf/proto"
-	"google.golang.org/protobuf/reflect/protodesc"
-	"google.golang.org/protobuf/reflect/protoreflect"
-	"google.golang.org/protobuf/types/known/anypb"
 )
 
-/* This file contains the base contract implementation that overrides the basic 'transfer' functionality */
+// ═══════════════════════════════════════════════════════════════════════
+//  STATE KEY PREFIXES
+//  0x01-0x0F reserved by Canopy. ForgeCast uses 0x10+.
+// ═══════════════════════════════════════════════════════════════════════
 
-// PluginConfig: the configuration of the contract
-var ContractConfig = &PluginConfig{
-	Name:                  "go_plugin_contract",
-	Id:                    1,
-	Version:               1,
-	SupportedTransactions: []string{"send"},
-	TransactionTypeUrls: []string{
-		"type.googleapis.com/types.MessageSend",
-	},
-	EventTypeUrls: nil,
+var (
+	// prefixContent maps content ID (uint64) → ContentRecord JSON
+	prefixContent = []byte{0x10}
+	// prefixLicense maps (buyerAddress + contentID bytes) → LicenseRecord JSON
+	prefixLicense = []byte{0x11}
+	// prefixCreatorStats maps creatorAddress → CreatorStats JSON
+	prefixCreatorStats = []byte{0x12}
+	// keyContentCounter holds the global monotonic content ID counter
+	keyContentCounter = []byte{0x13, 0x00}
+)
+
+// ═══════════════════════════════════════════════════════════════════════
+//  DATA MODELS
+// ═══════════════════════════════════════════════════════════════════════
+
+// ContentRecord is stored on-chain for every published piece of content.
+type ContentRecord struct {
+	ID            uint64 `json:"id"`
+	CreatorAddress []byte `json:"creator_address"`
+	Title         string `json:"title"`
+	ContentHash   string `json:"content_hash"`
+	LicenseTerms  string `json:"license_terms"`
+	PriceUfrg     uint64 `json:"price_ufrg"`
+	ContentType   string `json:"content_type"`
+	Description   string `json:"description"`
+	PublishedAt   uint64 `json:"published_at"` // block height
+	LicenseCount  uint64 `json:"license_count"`
+	TipTotal      uint64 `json:"tip_total"`
 }
 
-// init sets FileDescriptorProtos after ensuring .pb.go files are initialized
-func init() {
-	// Explicitly initialize the proto files first to ensure File_*_proto are set
-	file_account_proto_init()
-	file_event_proto_init()
-	file_plugin_proto_init()
-	file_tx_proto_init()
-
-	var fds [][]byte
-	// Include google/protobuf/any.proto first as it's a dependency of event.proto and tx.proto
-	for _, file := range []protoreflect.FileDescriptor{
-		anypb.File_google_protobuf_any_proto,
-		File_account_proto, File_event_proto, File_plugin_proto, File_tx_proto,
-	} {
-		fd, _ := proto.Marshal(protodesc.ToFileDescriptorProto(file))
-		fds = append(fds, fd)
-	}
-	ContractConfig.FileDescriptorProtos = fds
+// LicenseRecord proves a buyer holds a valid license for a piece of content.
+type LicenseRecord struct {
+	ContentID    uint64 `json:"content_id"`
+	BuyerAddress []byte `json:"buyer_address"`
+	AmountPaid   uint64 `json:"amount_paid"`
+	AcquiredAt   uint64 `json:"acquired_at"` // block height
 }
 
-// Contract() defines the smart contract that implements the extended logic of the nested chain
+// CreatorStats aggregates totals for a creator's on-chain activity.
+type CreatorStats struct {
+	TotalEarnings uint64 `json:"total_earnings"`
+	ContentCount  uint64 `json:"content_count"`
+	TipTotal      uint64 `json:"tip_total"`
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+//  CONTRACT STRUCT
+// ═══════════════════════════════════════════════════════════════════════
+
+// Contract holds runtime state and implements the Canopy plugin interface.
 type Contract struct {
-	Config    Config
-	FSMConfig *PluginFSMConfig // fsm configuration
-	plugin    *Plugin          // plugin connection
-	fsmId     uint64           // the id of the requesting fsm
+	Config        Config
+	FSMConfig     *PluginFSMConfig
+	plugin        *Plugin
+	fsmId         uint64
+	currentHeight uint64 // captured in BeginBlock — DeliverTx has no Height field
 }
 
-// Genesis() implements logic to import a json file to create the state at height 0 and export the state at any height
-func (c *Contract) Genesis(_ *PluginGenesisRequest) *PluginGenesisResponse {
-	return &PluginGenesisResponse{} // TODO map out original token holders
+// ═══════════════════════════════════════════════════════════════════════
+//  CONTRACT CONFIG — maps transaction type strings to proto URLs
+// ═══════════════════════════════════════════════════════════════════════
+
+func (c *Contract) ContractConfig() ContractConfig {
+	return ContractConfig{
+		SupportedTransactions: []string{
+			"send",              // 0
+			"publish_content",  // 1
+			"purchase_license", // 2
+			"tip_creator",      // 3
+		},
+		TransactionTypeUrls: []string{
+			"type.googleapis.com/types.MessageSend",            // 0
+			"type.googleapis.com/types.MessagePublishContent",  // 1
+			"type.googleapis.com/types.MessagePurchaseLicense", // 2
+			"type.googleapis.com/types.MessageTipCreator",      // 3
+		},
+	}
 }
 
-// BeginBlock() is code that is executed at the start of `applying` the block
-func (c *Contract) BeginBlock(_ *PluginBeginRequest) *PluginBeginResponse {
+// ═══════════════════════════════════════════════════════════════════════
+//  GENESIS
+// ═══════════════════════════════════════════════════════════════════════
+
+func (c *Contract) Genesis(req *PluginGenesisRequest) *PluginGenesisResponse {
+	// Initialise the content counter at 1
+	counterBytes := uint64ToBytes(1)
+	_, _ = c.plugin.StateWrite(c, &PluginStateWriteRequest{
+		Entries: []*PluginKeyValue{{Key: keyContentCounter, Value: counterBytes}},
+	})
+	return &PluginGenesisResponse{}
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+//  BEGIN BLOCK — capture current height for use in DeliverTx
+// ═══════════════════════════════════════════════════════════════════════
+
+func (c *Contract) BeginBlock(req *PluginBeginRequest) *PluginBeginResponse {
+	c.currentHeight = req.Height
 	return &PluginBeginResponse{}
 }
 
-// CheckTx() is code that is executed to statelessly validate a transaction
-func (c *Contract) CheckTx(request *PluginCheckRequest) *PluginCheckResponse {
-	// validate fee
-	resp, err := c.plugin.StateRead(c, &PluginStateReadRequest{
-		Keys: []*PluginKeyRead{
-			{QueryId: rand.Uint64(), Key: KeyForFeeParams()},
-		}})
-	if err == nil {
-		err = resp.Error
-	}
-	// handle error
-	if err != nil {
-		return &PluginCheckResponse{Error: err}
-	}
-	// convert bytes into fee parameters
-	minFees := new(FeeParams)
-	if err = Unmarshal(resp.Results[0].Entries[0].Value, minFees); err != nil {
-		return &PluginCheckResponse{Error: err}
-	}
-	// check for the minimum fee
-	if request.Tx.Fee < minFees.SendFee {
-		return &PluginCheckResponse{Error: ErrTxFeeBelowStateLimit()}
-	}
-	// get the message
-	msg, err := FromAny(request.Tx.Msg)
-	if err != nil {
-		return &PluginCheckResponse{Error: err}
-	}
-	// handle the message
-	switch x := msg.(type) {
-	case *MessageSend:
-		return c.CheckMessageSend(x)
-	default:
-		return &PluginCheckResponse{Error: ErrInvalidMessageCast()}
-	}
-}
+// ═══════════════════════════════════════════════════════════════════════
+//  CHECK TX — stateless validation + AuthorizedSigners
+// ═══════════════════════════════════════════════════════════════════════
 
-// DeliverTx() is code that is executed to apply a transaction
-func (c *Contract) DeliverTx(request *PluginDeliverRequest) *PluginDeliverResponse {
-	// get the message
-	msg, err := FromAny(request.Tx.Msg)
-	if err != nil {
-		return &PluginDeliverResponse{Error: err}
-	}
-	// handle the message
-	switch x := msg.(type) {
-	case *MessageSend:
-		return c.DeliverMessageSend(x, request.Tx.Fee)
-	default:
-		return &PluginDeliverResponse{Error: ErrInvalidMessageCast()}
-	}
-}
+func (c *Contract) CheckTx(req *PluginCheckRequest) *PluginCheckResponse {
+	switch req.Transaction.MessageType {
 
-// EndBlock() is code that is executed at the end of 'applying' a block
-func (c *Contract) EndBlock(_ *PluginEndRequest) *PluginEndResponse {
-	return &PluginEndResponse{}
-}
-
-// CheckMessageSend() statelessly validates a 'send' message
-func (c *Contract) CheckMessageSend(msg *MessageSend) *PluginCheckResponse {
-	// check sender address
-	if len(msg.FromAddress) != 20 {
-		return &PluginCheckResponse{Error: ErrInvalidAddress()}
-	}
-	// check recipient address
-	if len(msg.ToAddress) != 20 {
-		return &PluginCheckResponse{Error: ErrInvalidAddress()}
-	}
-	// check amount
-	if msg.Amount == 0 {
-		return &PluginCheckResponse{Error: ErrInvalidAmount()}
-	}
-	// return the authorized signers
-	return &PluginCheckResponse{Recipient: msg.ToAddress, AuthorizedSigners: [][]byte{msg.FromAddress}}
-}
-
-// DeliverMessageSend() handles a 'send' message
-func (c *Contract) DeliverMessageSend(msg *MessageSend, fee uint64) *PluginDeliverResponse {
-	log.Printf("DeliverMessageSend called: from=%x to=%x amount=%d fee=%d", msg.FromAddress, msg.ToAddress, msg.Amount, fee)
-	var (
-		fromKey, toKey, feePoolKey         []byte
-		fromBytes, toBytes, feePoolBytes   []byte
-		fromQueryId, toQueryId, feeQueryId = rand.Uint64(), rand.Uint64(), rand.Uint64()
-		from, to, feePool                  = new(Account), new(Account), new(Pool)
-	)
-	// calculate the from key and to key
-	fromKey, toKey, feePoolKey = KeyForAccount(msg.FromAddress), KeyForAccount(msg.ToAddress), KeyForFeePool(c.Config.ChainId)
-	log.Printf("Keys: fromKey=%x toKey=%x feePoolKey=%x", fromKey, toKey, feePoolKey)
-	// get the from and to account
-	response, err := c.plugin.StateRead(c, &PluginStateReadRequest{
-		Keys: []*PluginKeyRead{
-			{QueryId: feeQueryId, Key: feePoolKey},
-			{QueryId: fromQueryId, Key: fromKey},
-			{QueryId: toQueryId, Key: toKey},
-		}})
-	// check for internal error
-	if err != nil {
-		log.Printf("StateRead error: %v", err)
-		return &PluginDeliverResponse{Error: err}
-	}
-	// ensure no error fsm error
-	if response.Error != nil {
-		log.Printf("StateRead FSM error: %v", response.Error)
-		return &PluginDeliverResponse{Error: response.Error}
-	}
-	log.Printf("StateRead returned %d results", len(response.Results))
-	// get the from bytes and to bytes
-	for _, resp := range response.Results {
-		log.Printf("Result QueryId=%d Entries=%d", resp.QueryId, len(resp.Entries))
-		if len(resp.Entries) == 0 {
-			log.Printf("WARNING: No entries for QueryId=%d", resp.QueryId)
-			continue
+	case "publish_content":
+		var msg MessagePublishContent
+		if err := unmarshalProto(req.Transaction.Message, &msg); err != nil {
+			return checkErr(14, "cannot decode publish_content message")
 		}
-		switch resp.QueryId {
-		case fromQueryId:
-			fromBytes = resp.Entries[0].Value
-			log.Printf("fromBytes len=%d", len(fromBytes))
-		case toQueryId:
-			toBytes = resp.Entries[0].Value
-			log.Printf("toBytes len=%d", len(toBytes))
-		case feeQueryId:
-			feePoolBytes = resp.Entries[0].Value
-			log.Printf("feePoolBytes len=%d", len(feePoolBytes))
+		if strings.TrimSpace(msg.Title) == "" {
+			return checkErr(ErrInvalidTitle, "title is required")
 		}
+		if len(msg.Title) > 200 {
+			return checkErr(ErrInvalidTitle, "title exceeds 200 characters")
+		}
+		if strings.TrimSpace(msg.ContentHash) == "" {
+			return checkErr(ErrInvalidHash, "content_hash is required")
+		}
+		if strings.TrimSpace(msg.LicenseTerms) == "" {
+			return checkErr(ErrInvalidLicense, "license_terms is required")
+		}
+		if !validContentType(msg.ContentType) {
+			return checkErr(ErrInvalidContentType, "content_type must be one of: article, image, audio, video, dataset, other")
+		}
+		if len(msg.Description) > 500 {
+			return checkErr(ErrDescriptionTooLong, "description exceeds 500 characters")
+		}
+		return &PluginCheckResponse{AuthorizedSigners: [][]byte{msg.CreatorAddress}}
+
+	case "purchase_license":
+		var msg MessagePurchaseLicense
+		if err := unmarshalProto(req.Transaction.Message, &msg); err != nil {
+			return checkErr(14, "cannot decode purchase_license message")
+		}
+		if msg.ContentId == 0 {
+			return checkErr(ErrContentNotFound, "content_id is required")
+		}
+		return &PluginCheckResponse{AuthorizedSigners: [][]byte{msg.BuyerAddress}}
+
+	case "tip_creator":
+		var msg MessageTipCreator
+		if err := unmarshalProto(req.Transaction.Message, &msg); err != nil {
+			return checkErr(14, "cannot decode tip_creator message")
+		}
+		if msg.AmountUfrg == 0 {
+			return checkErr(ErrInvalidAmount, "tip amount must be greater than zero")
+		}
+		return &PluginCheckResponse{AuthorizedSigners: [][]byte{msg.SenderAddress}}
+
+	case "send":
+		var msg MessageSend
+		if err := unmarshalProto(req.Transaction.Message, &msg); err != nil {
+			return checkErr(14, "cannot decode send message")
+		}
+		return &PluginCheckResponse{AuthorizedSigners: [][]byte{msg.FromAddress}}
 	}
-	// add fee to 'amount to deduct'
-	amountToDeduct := msg.Amount + fee
-	// convert the bytes to account structures
-	if err = Unmarshal(fromBytes, from); err != nil {
-		return &PluginDeliverResponse{Error: err}
+
+	return checkErr(14, "unknown transaction type")
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+//  DELIVER TX — state-changing logic
+// ═══════════════════════════════════════════════════════════════════════
+
+func (c *Contract) DeliverTx(req *PluginDeliverRequest) *PluginDeliverResponse {
+	switch req.Transaction.MessageType {
+
+	case "publish_content":
+		return c.handlePublishContent(req)
+
+	case "purchase_license":
+		return c.handlePurchaseLicense(req)
+
+	case "tip_creator":
+		return c.handleTipCreator(req)
+
+	case "send":
+		return c.handleSend(req)
 	}
-	if err = Unmarshal(toBytes, to); err != nil {
-		return &PluginDeliverResponse{Error: err}
+
+	return deliverErr(14, "unknown transaction type")
+}
+
+// ─── publish_content ───────────────────────────────────────────────────
+
+func (c *Contract) handlePublishContent(req *PluginDeliverRequest) *PluginDeliverResponse {
+	var msg MessagePublishContent
+	if err := unmarshalProto(req.Transaction.Message, &msg); err != nil {
+		return deliverErr(14, "decode error")
 	}
-	if err = Unmarshal(feePoolBytes, feePool); err != nil {
-		return &PluginDeliverResponse{Error: err}
-	}
-	log.Printf("from.Amount=%d to.Amount=%d feePool.Amount=%d", from.Amount, to.Amount, feePool.Amount)
-	// if the account amount is less than the amount to subtract; return insufficient funds
-	if from.Amount < amountToDeduct {
-		log.Printf("ERROR: Insufficient funds: from.Amount=%d amountToDeduct=%d", from.Amount, amountToDeduct)
-		return &PluginDeliverResponse{Error: ErrInsufficientFunds()}
-	}
-	// for self-transfer, use same account data
-	if bytes.Equal(fromKey, toKey) {
-		to = from
-	}
-	// subtract from sender
-	from.Amount -= amountToDeduct
-	// add the fee to the 'fee pool'
-	feePool.Amount += fee
-	// add to recipient
-	to.Amount += msg.Amount
-	log.Printf("AFTER: from.Amount=%d to.Amount=%d feePool.Amount=%d", from.Amount, to.Amount, feePool.Amount)
-	// convert the accounts to bytes
-	fromBytes, err = Marshal(from)
+
+	// Read the global counter
+	readResp, err := c.plugin.StateRead(c, &PluginStateReadRequest{
+		Keys: [][]byte{keyContentCounter},
+	})
 	if err != nil {
-		return &PluginDeliverResponse{Error: err}
+		return deliverErr(14, "state read error: "+err.Error())
 	}
-	toBytes, err = Marshal(to)
+	if readResp.Error != nil {
+		return &PluginDeliverResponse{Error: readResp.Error}
+	}
+
+	var nextID uint64 = 1
+	if len(readResp.Entries) > 0 && len(readResp.Entries[0].Value) == 8 {
+		nextID = bytesToUint64(readResp.Entries[0].Value)
+	}
+
+	// Build and store the ContentRecord
+	record := ContentRecord{
+		ID:             nextID,
+		CreatorAddress: msg.CreatorAddress,
+		Title:          msg.Title,
+		ContentHash:    msg.ContentHash,
+		LicenseTerms:   msg.LicenseTerms,
+		PriceUfrg:      msg.PriceUfrg,
+		ContentType:    msg.ContentType,
+		Description:    msg.Description,
+		PublishedAt:    c.currentHeight,
+	}
+	recordBytes, _ := json.Marshal(record)
+
+	// Read existing creator stats
+	statsKey := makeKey(prefixCreatorStats, msg.CreatorAddress)
+	statsResp, err := c.plugin.StateRead(c, &PluginStateReadRequest{Keys: [][]byte{statsKey}})
 	if err != nil {
-		return &PluginDeliverResponse{Error: err}
+		return deliverErr(14, "state read error: "+err.Error())
 	}
-	feePoolBytes, err = Marshal(feePool)
+	var stats CreatorStats
+	if len(statsResp.Entries) > 0 && len(statsResp.Entries[0].Value) > 0 {
+		_ = json.Unmarshal(statsResp.Entries[0].Value, &stats)
+	}
+	stats.ContentCount++
+	statsBytes, _ := json.Marshal(stats)
+
+	// Write content record + updated counter + creator stats
+	contentKey := makeKey(prefixContent, uint64ToBytes(nextID))
+	_, err = c.plugin.StateWrite(c, &PluginStateWriteRequest{
+		Entries: []*PluginKeyValue{
+			{Key: contentKey, Value: recordBytes},
+			{Key: keyContentCounter, Value: uint64ToBytes(nextID + 1)},
+			{Key: statsKey, Value: statsBytes},
+		},
+	})
 	if err != nil {
-		return &PluginDeliverResponse{Error: err}
+		return deliverErr(14, "state write error: "+err.Error())
 	}
-	// execute writes to the database
-	var resp *PluginStateWriteResponse
-	// if the from account is drained - delete the from account
-	if from.Amount == 0 {
-		resp, err = c.plugin.StateWrite(c, &PluginStateWriteRequest{
-			Sets: []*PluginSetOp{
-				{Key: feePoolKey, Value: feePoolBytes},
-				{Key: toKey, Value: toBytes},
+
+	return &PluginDeliverResponse{
+		Events: []*PluginEvent{{
+			Type: "content_published",
+			Attributes: []*PluginEventAttribute{
+				{Key: "content_id", Value: uint64ToStr(nextID)},
+				{Key: "creator", Value: bytesToHex(msg.CreatorAddress)},
+				{Key: "title", Value: msg.Title},
 			},
-			Deletes: []*PluginDeleteOp{{Key: fromKey}},
-		})
-	} else {
-		resp, err = c.plugin.StateWrite(c, &PluginStateWriteRequest{
-			Sets: []*PluginSetOp{
-				{Key: feePoolKey, Value: feePoolBytes},
-				{Key: toKey, Value: toBytes},
-				{Key: fromKey, Value: fromBytes},
-			},
-		})
+		}},
 	}
+}
+
+// ─── purchase_license ──────────────────────────────────────────────────
+
+func (c *Contract) handlePurchaseLicense(req *PluginDeliverRequest) *PluginDeliverResponse {
+	var msg MessagePurchaseLicense
+	if err := unmarshalProto(req.Transaction.Message, &msg); err != nil {
+		return deliverErr(14, "decode error")
+	}
+
+	contentKey := makeKey(prefixContent, uint64ToBytes(msg.ContentId))
+	licenseKey := makeLicenseKey(msg.BuyerAddress, msg.ContentId)
+
+	// Read content + existing license in one call
+	readResp, err := c.plugin.StateRead(c, &PluginStateReadRequest{
+		Keys: [][]byte{contentKey, licenseKey},
+	})
 	if err != nil {
-		log.Printf("StateWrite internal error: %v", err)
-		return &PluginDeliverResponse{Error: err}
+		return deliverErr(14, "state read error: "+err.Error())
 	}
-	if resp.Error != nil {
-		log.Printf("StateWrite FSM error: %v", resp.Error)
-		return &PluginDeliverResponse{Error: resp.Error}
+	if readResp.Error != nil {
+		return &PluginDeliverResponse{Error: readResp.Error}
 	}
-	log.Printf("StateWrite SUCCESS!")
+
+	if len(readResp.Entries) < 1 || len(readResp.Entries[0].Value) == 0 {
+		return deliverErr(ErrContentNotFound, "content not found")
+	}
+
+	var record ContentRecord
+	if err := json.Unmarshal(readResp.Entries[0].Value, &record); err != nil {
+		return deliverErr(14, "decode content record error")
+	}
+
+	// Prevent self-purchase
+	if bytes.Equal(msg.BuyerAddress, record.CreatorAddress) {
+		return deliverErr(ErrSelfPurchase, "cannot purchase your own content")
+	}
+
+	// Prevent duplicate license
+	if len(readResp.Entries) > 1 && len(readResp.Entries[1].Value) > 0 {
+		return deliverErr(ErrAlreadyLicensed, "already holds a license for this content")
+	}
+
+	// Validate amount matches price (skip if free)
+	if record.PriceUfrg > 0 && msg.AmountUfrg < record.PriceUfrg {
+		return deliverErr(ErrInsufficientFunds, "amount is less than content price")
+	}
+
+	// Build license record
+	license := LicenseRecord{
+		ContentID:    msg.ContentId,
+		BuyerAddress: msg.BuyerAddress,
+		AmountPaid:   msg.AmountUfrg,
+		AcquiredAt:   c.currentHeight,
+	}
+	licenseBytes, _ := json.Marshal(license)
+
+	// Update content: increment license count
+	record.LicenseCount++
+	recordBytes, _ := json.Marshal(record)
+
+	// Read creator stats
+	statsKey := makeKey(prefixCreatorStats, record.CreatorAddress)
+	statsResp, _ := c.plugin.StateRead(c, &PluginStateReadRequest{Keys: [][]byte{statsKey}})
+	var stats CreatorStats
+	if len(statsResp.Entries) > 0 && len(statsResp.Entries[0].Value) > 0 {
+		_ = json.Unmarshal(statsResp.Entries[0].Value, &stats)
+	}
+	stats.TotalEarnings += msg.AmountUfrg
+	statsBytes, _ := json.Marshal(stats)
+
+	// Write all state
+	_, err = c.plugin.StateWrite(c, &PluginStateWriteRequest{
+		Entries: []*PluginKeyValue{
+			{Key: licenseKey, Value: licenseBytes},
+			{Key: contentKey, Value: recordBytes},
+			{Key: statsKey, Value: statsBytes},
+		},
+	})
+	if err != nil {
+		return deliverErr(14, "state write error: "+err.Error())
+	}
+
+	return &PluginDeliverResponse{
+		Events: []*PluginEvent{{
+			Type: "license_purchased",
+			Attributes: []*PluginEventAttribute{
+				{Key: "content_id", Value: uint64ToStr(msg.ContentId)},
+				{Key: "buyer", Value: bytesToHex(msg.BuyerAddress)},
+				{Key: "amount_ufrg", Value: uint64ToStr(msg.AmountUfrg)},
+			},
+		}},
+	}
+}
+
+// ─── tip_creator ───────────────────────────────────────────────────────
+
+func (c *Contract) handleTipCreator(req *PluginDeliverRequest) *PluginDeliverResponse {
+	var msg MessageTipCreator
+	if err := unmarshalProto(req.Transaction.Message, &msg); err != nil {
+		return deliverErr(14, "decode error")
+	}
+
+	if msg.AmountUfrg == 0 {
+		return deliverErr(ErrInvalidAmount, "tip amount must be greater than zero")
+	}
+	if bytes.Equal(msg.SenderAddress, msg.CreatorAddress) {
+		return deliverErr(ErrSelfTip, "cannot tip yourself")
+	}
+
+	// Update creator stats
+	statsKey := makeKey(prefixCreatorStats, msg.CreatorAddress)
+	statsResp, err := c.plugin.StateRead(c, &PluginStateReadRequest{Keys: [][]byte{statsKey}})
+	if err != nil {
+		return deliverErr(14, "state read error: "+err.Error())
+	}
+
+	var stats CreatorStats
+	if len(statsResp.Entries) > 0 && len(statsResp.Entries[0].Value) > 0 {
+		_ = json.Unmarshal(statsResp.Entries[0].Value, &stats)
+	}
+	stats.TipTotal += msg.AmountUfrg
+	stats.TotalEarnings += msg.AmountUfrg
+	statsBytes, _ := json.Marshal(stats)
+
+	_, err = c.plugin.StateWrite(c, &PluginStateWriteRequest{
+		Entries: []*PluginKeyValue{{Key: statsKey, Value: statsBytes}},
+	})
+	if err != nil {
+		return deliverErr(14, "state write error: "+err.Error())
+	}
+
+	return &PluginDeliverResponse{
+		Events: []*PluginEvent{{
+			Type: "creator_tipped",
+			Attributes: []*PluginEventAttribute{
+				{Key: "creator", Value: bytesToHex(msg.CreatorAddress)},
+				{Key: "sender", Value: bytesToHex(msg.SenderAddress)},
+				{Key: "amount_ufrg", Value: uint64ToStr(msg.AmountUfrg)},
+			},
+		}},
+	}
+}
+
+// ─── send ──────────────────────────────────────────────────────────────
+
+func (c *Contract) handleSend(req *PluginDeliverRequest) *PluginDeliverResponse {
+	// The Canopy FSM handles token transfers natively via the send message type.
+	// DeliverTx for send is a pass-through — the FSM already moved the tokens.
 	return &PluginDeliverResponse{}
 }
 
-var (
-	accountPrefix = []byte{1} // store key prefix for accounts
-	poolPrefix    = []byte{2} // store key prefix for pools
-	paramsPrefix  = []byte{7} // store key prefix for governance parameters
-)
+// ═══════════════════════════════════════════════════════════════════════
+//  END BLOCK
+// ═══════════════════════════════════════════════════════════════════════
 
-// KeyForAccount() returns the state database key for an account
-func KeyForAccount(addr []byte) []byte {
-	return JoinLenPrefix(accountPrefix, addr)
+func (c *Contract) EndBlock(req *PluginEndRequest) *PluginEndResponse {
+	return &PluginEndResponse{}
 }
 
-// KeyForFeeParams() returns the state database key for governance controlled 'fee parameters'
-func KeyForFeeParams() []byte {
-	return JoinLenPrefix(paramsPrefix, []byte("/f/"))
+// ═══════════════════════════════════════════════════════════════════════
+//  HELPERS
+// ═══════════════════════════════════════════════════════════════════════
+
+func makeKey(prefix []byte, suffix []byte) []byte {
+	key := make([]byte, len(prefix)+len(suffix))
+	copy(key, prefix)
+	copy(key[len(prefix):], suffix)
+	return key
 }
 
-// KeyForFeeParams() returns the state database key for governance controlled 'fee parameters'
-func KeyForFeePool(chainId uint64) []byte {
-	return JoinLenPrefix(poolPrefix, formatUint64(chainId))
+func makeLicenseKey(buyerAddr []byte, contentID uint64) []byte {
+	idBytes := uint64ToBytes(contentID)
+	key := make([]byte, len(prefixLicense)+len(buyerAddr)+len(idBytes))
+	copy(key, prefixLicense)
+	copy(key[len(prefixLicense):], buyerAddr)
+	copy(key[len(prefixLicense)+len(buyerAddr):], idBytes)
+	return key
 }
 
-func formatUint64(u uint64) []byte {
+func uint64ToBytes(v uint64) []byte {
 	b := make([]byte, 8)
-	binary.BigEndian.PutUint64(b, u)
+	binary.BigEndian.PutUint64(b, v)
 	return b
 }
+
+func bytesToUint64(b []byte) uint64 {
+	return binary.BigEndian.Uint64(b)
+}
+
+func uint64ToStr(v uint64) string {
+	return fmt.Sprintf("%d", v)
+}
+
+func bytesToHex(b []byte) string {
+	const hx = "0123456789abcdef"
+	out := make([]byte, len(b)*2)
+	for i, c := range b {
+		out[i*2] = hx[c>>4]
+		out[i*2+1] = hx[c&0x0f]
+	}
+	return string(out)
+}
+
+func validContentType(t string) bool {
+	switch t {
+	case "article", "image", "audio", "video", "dataset", "other":
+		return true
+	}
+	return false
+}
+
+func checkErr(code uint32, msg string) *PluginCheckResponse {
+	return &PluginCheckResponse{Error: &PluginError{Code: code, Message: msg}}
+}
+
+func deliverErr(code uint32, msg string) *PluginDeliverResponse {
+	return &PluginDeliverResponse{Error: &PluginError{Code: code, Message: msg}}
+}
+
+// unmarshalProto unmarshals protobuf binary data into the given message.
+// Concrete message types are provided by the generated tx.pb.go file.
+func unmarshalProto(data []byte, out proto.Message) error {
+	return proto.Unmarshal(data, out)
+}
+
