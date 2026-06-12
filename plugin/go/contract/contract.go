@@ -19,9 +19,23 @@ var ContractConfig = &PluginConfig{
 	Name:                  "go_plugin_contract",
 	Id:                    1,
 	Version:               1,
-	SupportedTransactions: []string{"send"},
+	SupportedTransactions: []string{
+		"send",
+		"register_protocol",
+		"emit_reputation_event",
+		"follow_address",
+		"unfollow_address",
+		"endorse_address",
+		"revoke_endorsement",
+	},
 	TransactionTypeUrls: []string{
 		"type.googleapis.com/types.MessageSend",
+		"type.googleapis.com/types.MessageRegisterProtocol",
+		"type.googleapis.com/types.MessageEmitReputationEvent",
+		"type.googleapis.com/types.MessageFollowAddress",
+		"type.googleapis.com/types.MessageUnfollowAddress",
+		"type.googleapis.com/types.MessageEndorseAddress",
+		"type.googleapis.com/types.MessageRevokeEndorsement",
 	},
 	EventTypeUrls: nil,
 }
@@ -51,7 +65,8 @@ type Contract struct {
 	Config    Config
 	FSMConfig *PluginFSMConfig // fsm configuration
 	plugin    *Plugin          // plugin connection
-	fsmId     uint64           // the id of the requesting fsm
+	fsmId         uint64           // the id of the requesting fsm
+	currentHeight uint64           // current block height
 }
 
 // Genesis() implements logic to import a json file to create the state at height 0 and export the state at any height
@@ -60,7 +75,8 @@ func (c *Contract) Genesis(_ *PluginGenesisRequest) *PluginGenesisResponse {
 }
 
 // BeginBlock() is code that is executed at the start of `applying` the block
-func (c *Contract) BeginBlock(_ *PluginBeginRequest) *PluginBeginResponse {
+func (c *Contract) BeginBlock(req *PluginBeginRequest) *PluginBeginResponse {
+	c.currentHeight = req.Height
 	return &PluginBeginResponse{}
 }
 
@@ -96,6 +112,18 @@ func (c *Contract) CheckTx(request *PluginCheckRequest) *PluginCheckResponse {
 	switch x := msg.(type) {
 	case *MessageSend:
 		return c.CheckMessageSend(x)
+	case *MessageRegisterProtocol:
+		return c.CheckMessageRegisterProtocol(x)
+	case *MessageEmitReputationEvent:
+		return c.CheckMessageEmitReputationEvent(x)
+	case *MessageFollowAddress:
+		return c.CheckMessageFollowAddress(x)
+	case *MessageUnfollowAddress:
+		return c.CheckMessageUnfollowAddress(x)
+	case *MessageEndorseAddress:
+		return c.CheckMessageEndorseAddress(x)
+	case *MessageRevokeEndorsement:
+		return c.CheckMessageRevokeEndorsement(x)
 	default:
 		return &PluginCheckResponse{Error: ErrInvalidMessageCast()}
 	}
@@ -112,6 +140,18 @@ func (c *Contract) DeliverTx(request *PluginDeliverRequest) *PluginDeliverRespon
 	switch x := msg.(type) {
 	case *MessageSend:
 		return c.DeliverMessageSend(x, request.Tx.Fee)
+	case *MessageRegisterProtocol:
+		return c.DeliverMessageRegisterProtocol(x, request.Tx.Fee)
+	case *MessageEmitReputationEvent:
+		return c.DeliverMessageEmitReputationEvent(x, request.Tx.Fee)
+	case *MessageFollowAddress:
+		return c.DeliverMessageFollowAddress(x, request.Tx.Fee)
+	case *MessageUnfollowAddress:
+		return c.DeliverMessageUnfollowAddress(x, request.Tx.Fee)
+	case *MessageEndorseAddress:
+		return c.DeliverMessageEndorseAddress(x, request.Tx.Fee)
+	case *MessageRevokeEndorsement:
+		return c.DeliverMessageRevokeEndorsement(x, request.Tx.Fee)
 	default:
 		return &PluginDeliverResponse{Error: ErrInvalidMessageCast()}
 	}

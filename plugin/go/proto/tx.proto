@@ -3,54 +3,112 @@ package types;
 option go_package = "github.com/canopy-network/go-plugin/contract";
 
 import "google/protobuf/any.proto";
-// Transaction represents a request or action submitted to the network like transfer assets or perform other operations
-// within the blockchain system - THIS MUST MATCH lib.Transaction EXACTLY for signing
+
 message Transaction {
-  // message_type: The type of the transaction like 'send' or 'stake'
   string message_type = 1; // @gotags: json:"messageType"
-  // msg: The actual transaction message payload, which is encapsulated in a generic message format
   google.protobuf.Any msg = 2;
-  // signature: The cryptographic signature used to verify the authenticity of the transaction
   Signature signature = 3;
-  // created_height: The height when the transaction was created - allows 'safe pruning'
   uint64 created_height = 4; // @gotags: json:"createdHeight"
-  // time: The timestamp when the transaction was created - used as temporal entropy to prevent hash collisions in txs
   uint64 time = 5;
-  // fee: The fee associated with processing the transaction
   uint64 fee = 6;
-  // memo: An optional message or note attached to the transaction
   string memo = 7;
-  // network_id: The identity of the network the transaction is intended for
   uint64 network_id = 8; // @gotags: json:"networkID"
-  // chain_id: The identity of the committee the transaction is intended for
   uint64 chain_id = 9; // @gotags: json:"chainID"
-  // NOTE: CAN EXTEND FUNCTIONALITY BY ADDING ADDITIONAL FIELDS
-  // NO CONFLICT STARTING AT FIELD = 10
 }
 
-// MessageSend is a standard transfer transaction, taking tokens from the sender and transferring
-// them to the recipient
 message MessageSend {
-  // from_address: is the sender of the funds
   bytes from_address = 1; // @gotags: json:"fromAddress"
-  // to_address: is the recipient of the funds
   bytes to_address = 2; // @gotags: json:"toAddress"
-  // amount: is the amount of tokens in micro-denomination (uCNPY)
   uint64 amount = 3;
 }
 
-// FeeParams is the parameter space that defines various amounts for transaction fees
-message FeeParams {
-  // send_fee: is the fee amount (in uCNPY) for Message Send
-  uint64 send_fee = 1; // @gotags: json:"sendFee"
-  // NO CONFLICT STARTING AT FIELD = 14
+// ── Lattice Transaction Types ──────────────────────────────────────────────
+
+// RegisterProtocol: a Nested Chain registers as a Lattice reputation source
+message MessageRegisterProtocol {
+  bytes admin_address = 1;  // @gotags: json:"adminAddress"
+  string protocol_name = 2; // @gotags: json:"protocolName"
+  string protocol_url  = 3; // @gotags: json:"protocolUrl"
 }
 
-// A Signature is a digital signature is a cryptographic "fingerprint" created with a private key,
-// allowing others to verify the authenticity and integrity of a message using the corresponding public key
+// EmitReputationEvent: a registered protocol emits a reputation event for an address
+message MessageEmitReputationEvent {
+  bytes protocol_address = 1; // @gotags: json:"protocolAddress"
+  bytes subject_address  = 2; // @gotags: json:"subjectAddress"
+  string event_type      = 3; // @gotags: json:"eventType"
+  uint64 base_points     = 4; // @gotags: json:"basePoints"
+}
+
+// FollowAddress: directed follow, no stake required
+message MessageFollowAddress {
+  bytes follower_address = 1; // @gotags: json:"followerAddress"
+  bytes target_address   = 2; // @gotags: json:"targetAddress"
+}
+
+// UnfollowAddress: remove a directed follow
+message MessageUnfollowAddress {
+  bytes follower_address = 1; // @gotags: json:"followerAddress"
+  bytes target_address   = 2; // @gotags: json:"targetAddress"
+}
+
+// EndorseAddress: staked endorsement, weight tied to endorser reputation score
+message MessageEndorseAddress {
+  bytes endorser_address = 1; // @gotags: json:"endorserAddress"
+  bytes subject_address  = 2; // @gotags: json:"subjectAddress"
+  uint64 stake_amount    = 3; // @gotags: json:"stakeAmount"
+}
+
+// RevokeEndorsement: unstake and remove an endorsement
+message MessageRevokeEndorsement {
+  bytes endorser_address = 1; // @gotags: json:"endorserAddress"
+  bytes subject_address  = 2; // @gotags: json:"subjectAddress"
+}
+
+// ── Lattice State Objects ──────────────────────────────────────────────────
+
+// ReputationEvent: a single on-chain reputation signal
+message ReputationEvent {
+  bytes  protocol_address = 1; // @gotags: json:"protocolAddress"
+  string event_type       = 2; // @gotags: json:"eventType"
+  uint64 base_points      = 3; // @gotags: json:"basePoints"
+  uint64 block_height     = 4; // @gotags: json:"blockHeight"
+}
+
+// Endorsement: a staked endorsement from one address to another
+message Endorsement {
+  bytes  endorser_address        = 1; // @gotags: json:"endorserAddress"
+  uint64 stake_amount            = 2; // @gotags: json:"stakeAmount"
+  uint64 endorser_score_snapshot = 3; // @gotags: json:"endorserScoreSnapshot"
+  uint64 block_height            = 4; // @gotags: json:"blockHeight"
+}
+
+// LatticeProfile: the full on-chain identity for an address
+message LatticeProfile {
+  bytes   address              = 1;
+  uint64  raw_score            = 2; // @gotags: json:"rawScore"
+  repeated ReputationEvent events     = 3;
+  repeated bytes           followers  = 4;
+  repeated bytes           following  = 5;
+  repeated Endorsement     endorsements_received = 6; // @gotags: json:"endorsementsReceived"
+  repeated bytes           endorsing  = 7;
+  uint64  endorsement_stake   = 8; // @gotags: json:"endorsementStake"
+}
+
+// Protocol: a registered Lattice protocol source
+message Protocol {
+  bytes  admin_address  = 1; // @gotags: json:"adminAddress"
+  string protocol_name  = 2; // @gotags: json:"protocolName"
+  string protocol_url   = 3; // @gotags: json:"protocolUrl"
+  uint64 block_height   = 4; // @gotags: json:"blockHeight"
+}
+
+// ── Fee & Signature ────────────────────────────────────────────────────────
+
+message FeeParams {
+  uint64 send_fee = 1; // @gotags: json:"sendFee"
+}
+
 message Signature {
-  // public_key: is a cryptographic code shared openly, used to verify digital signatures
   bytes public_key = 1; // @gotags: json:"publicKey"
-  // signature: the bytes of the signature output from a private key which may be verified with the message and public
-  bytes signature = 2;
+  bytes signature  = 2;
 }

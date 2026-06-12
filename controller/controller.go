@@ -248,7 +248,7 @@ func (c *Controller) IsValidDoubleSigner(rootChainId, rootHeight uint64, address
 
 // PLUGIN CALLS BELOW
 
-const socketDir = "/tmp/plugin"
+const socketDir = "/data/data/com.termux/files/home/.canopy/plugin"
 const socketFile = "plugin.sock"
 
 // PluginExecute() executes the plugin control script to start the plugin process
@@ -258,7 +258,7 @@ func (c *Controller) PluginExecute(plugin string) {
 		return
 	}
 	// construct the shell command path: plugin/<plugin>/pluginctl.sh start
-	cmdPath := filepath.Join("plugin", plugin, "pluginctl.sh")
+	cmdPath := filepath.Join(os.Getenv("HOME"), "canopy", "plugin", plugin, "pluginctl.sh")
 	// create the command to execute the plugin control script with 'start' argument
 	cmd := exec.Command(cmdPath, "start")
 	// execute the command and capture output
